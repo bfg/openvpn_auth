@@ -28,6 +28,12 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 #
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
+
 package Net::OpenVPN::Auth::File;
 
 @ISA = qw(Net::OpenVPN::Auth);

@@ -459,12 +459,26 @@ $debug = 0;
 #
 # Type: array reference
 # Default: [] (don't preload any additional modules)
-$extra_modules = [];
+$extra_modules = [
+	# Needed by LDAP backend:
+	#
+	#'IO::Socket::SSL',			# If using tls => 1
+	#'Net::LDAP::Util',
+	#'Net::LDAP::Bind',
+	#'Net::LDAP::Search',
+	#'Net::LDAP::Extension',
+
+	# Needed by DBI backend
+	#
+	# 'Carp::Heavy',
+	# 'DBD::mysql'				# If you're using mysql database
+	# 'DBD::Pg'				# If you're using postgresql database
+];
 
 # Comment out the following line
 # in order to make this configuration
 # file valid
-die "...at least read the whole goddamn configuration file."
+die "...at least read the whole goddamn configuration file.\n";
 
 # Don't remove/comment the following line
 1;

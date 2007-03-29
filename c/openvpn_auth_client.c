@@ -30,6 +30,13 @@
  *
  */
 
+/**
+ * $Id$
+ * $LastChangedRevision$
+ * $LastChangedBy$
+ * $LastChangedDate$
+ */
+
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -657,8 +664,8 @@ int main (int argc, char **argv) {
 	}
 
 	/** check if we're really called as openvpn argument */
-	if ((tmp = getenv("script_type")) == NULL || strcmp(tmp, "auth-user-pass-verify") != 0) {
-		log_msg("Program is not executed as --auth-user-pass-verify openvpn server argument. Environment variable \"script_type\" != \"auth-user-pass-verify\"");
+	if ((tmp = getenv("script_type")) == NULL || (strcmp(tmp, "auth-user-pass-verify") != 0 && strcmp(tmp, "user-pass-verify") != 0)) {
+		log_msg("Program is not executed as --auth-user-pass-verify openvpn server argument. Environment variable \"script_type\" != \"(auth-)?user-pass-verify\" (%s)", tmp);
 	}
 
 	/** initialize authentication structure */

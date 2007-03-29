@@ -29,11 +29,73 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-#
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
 
 use strict;
 use warnings;
 
+# must be declared here becouse of usage in fetch_modules()
+#
+# the following sub was written by Mark Martinec <mark.martinec@ijs.si>
+# in his excellent software, called amavisd-new,
+# http://www.ijs.si/software/amavisd-new
+my $log = undef;
+
+# must be declared here becouse of usage in BEGIN {}
+sub fetch_modules {
+	my($reason, @modules) = @_;
+	my @missing;
+
+	foreach my $mod (@modules) {
+		$log->debug("Preloading module '$mod'.") if defined ($log);
+		$_ = $mod;
+		$_ .= /^auto::/ ? '.al' : '.pm'; s[::][/]g;
+		eval { require $_; } or push(@missing, $mod);
+	}
+
+	if (@missing) {
+		die "ERROR: MISSING $reason:\n" . join('', map {"\t$_\n"} @missing);
+	}
+	
+	return 1;
+}
+
+# Begin block... the only purpose of this block is to notify user in
+# nice manner how to install basic perl modules required to run this software.
+BEGIN {
+	my @mods = qw(
+		FindBin
+		IO::File
+		File::Spec
+		Getopt::Long
+		Log::Log4perl
+		Log::Dispatch
+		File::Basename
+		Net::Server
+	);
+
+	eval {
+		fetch_modules("Basic required modules: ", @mods);
+	};
+	
+	if ($@) {
+		print STDERR "$@\n";
+		print STDERR "\n";
+		print STDERR "Install missing modules using your operating system package manager or by using CPAN:\n\n";
+		print STDERR "perl -MCPAN -e 'install <MODULE_NAME>\n\n";
+		print STDERR "    or using CPAN interactive shell\n\n";
+		print STDERR "perl -MCPAN -e shell\n";
+		print STDERR "\n";
+		
+		exit 1;
+	}
+};
+
+# basic required modules
 use FindBin;
 use IO::File;
 use File::Spec;
@@ -69,7 +131,7 @@ use vars qw(
 	$extra_modules
 );
 
-# my own classes
+# my own modules
 use Net::OpenVPN::Auth;
 use Net::OpenVPN::AuthChain;
 use Net::OpenVPN::AuthDaemon;
@@ -84,7 +146,7 @@ $VERSION = 0.10;
 my $Error = "";
 my $default_config_file = Cwd::realpath(File::Spec->catfile($FindBin::Bin,  "..", "etc", "openvpn_authd.conf"));
 
-my $log = undef;			# logger object...
+$log = undef;				# logger object...
 
 my $tmpdir = File::Spec->tmpdir();
 my $debug_logfile = File::Spec->catfile($tmpdir, $MYNAME . ".debug.log");
@@ -669,27 +731,6 @@ sub printhelp {
 	print STDERR "         status          Obtain daemon status\n";
 }
 
-# the following sub was written by Mark Martinec <mark.martinec@ijs.si>
-# in his excellent software, called amavisd-new,
-# http://www.ijs.si/software/amavisd-new
-sub fetch_modules {
-	my($reason, @modules) = @_;
-	my @missing;
-
-	foreach my $mod (@modules) {
-		$log->debug("Preloading module '$mod'.");
-		$_ = $mod;
-		$_ .= /^auto::/ ? '.al' : '.pm'; s[::][/]g;
-		eval { require $_; } or push(@missing, $mod);
-	}
-
-	if (@missing) {
-		die "ERROR: MISSING $reason:\n" . join('', map {"\t$_\n"} @missing);
-	}
-	
-	return 1;
-}
-
 sub get_logger_config {
 	# if we have logging configuration file, we should just return
 	# it...
@@ -716,6 +757,7 @@ sub get_logger_config {
 }
 
 sub logger_init {
+	my ($action) = @_;
 	my $cfg = get_logger_config();
 
 	# if ($debug) {
@@ -732,7 +774,7 @@ sub logger_init {
 	}
 	
 	my $obj = Log::Log4perl->get_logger(__PACKAGE__);
-	$obj->info(sprintf("%s version %-.2f startup.", $MYNAME, $VERSION));
+	$obj->info(sprintf("%s version %-.2f startup [%s].", $MYNAME, $VERSION, $action));
 	$obj->info("Logging subsystem initialized.");
 	return $obj;
 }
@@ -819,12 +861,19 @@ sub chain_prepare {
 
 sub daemon_action_start {
 	print "Starting ${MYNAME}...\n";
+	
+	# check if daemon is already running...
+	my $pid = daemon_action_status(1);
+	if ($pid) {
+		print STDERR "Daemon is already running as pid $pid.\n";
+		return 0;
+	}
 
 	# initialize chain object
 	my $chain = undef;
 	unless (defined ($chain = chain_prepare())) {
 		print STDERR "Error preparing authentication chain: $Error\n";
-		exit 1;
+		return 0;
 	}
 
 	# initialize server object
@@ -834,7 +883,7 @@ sub daemon_action_start {
 	# assign auth chain to server module
 	unless ($srv->setChain($chain)) {
 		print STDERR "Unable to assign authentication chain to server object: ", $srv->getError(), "\n";
-		exit 1;
+		return 0;
 	}
 
 	# build server parameter hash
@@ -913,11 +962,27 @@ sub daemon_action_start {
 	# start the authentication server
 	$srv->run(%srv_args);
 
-	return 0;
+	return 1;
 }
 
 sub daemon_action_stop {
 	print "Stopping ${MYNAME}...\n";
+	my $pid = get_pid($daemon_pidfile);
+	unless ($pid) {
+		print STDERR "$Error\n";
+		return 0;
+	}
+	
+	# kill the bastard
+	my $num = 0;
+	my $i = 0;
+	my $x = 0;
+	while (($x = kill(15, $pid)) > 0 && $i < 3) {
+		$num += $x;
+		sleep(1);
+	}
+
+	return ($num > 0) ? 1 : 0;
 }
 
 sub daemon_action_restart {
@@ -928,11 +993,23 @@ sub daemon_action_status {
 	my ($silent) = @_;
 	$silent = 0 unless (defined $silent);
 
-	# TODO read pid file
-	
+	my $pid = get_pid($daemon_pidfile);
+	unless ($pid) {
+		print "$MYNAME is stopped: $Error\n" unless ($silent);
+		return 0;
+	}
+
 	# check if process is alive
-	
+	unless (kill(0, $pid)) {
+		print "$MYNAME is stopped.\n" unless ($silent);
+		# remove dead pid file
+		unlink($daemon_pidfile);
+		return 0;
+	}
+
 	# report status
+	print "$MYNAME is running as pid $pid.\n" unless ($silent);
+	return $pid; 
 }
 
 sub daemon_action {
@@ -955,6 +1032,72 @@ sub daemon_action {
 	return $r;
 }
 
+sub get_pid {
+	my ($file) = @_;
+	my $pid = get_pid_file($file);
+
+	# check if pid is alive
+	if ($pid) {
+		unless (kill(0, $pid)) {
+			print STDERR "WARNING: Pid read from pidfile '$file' is not alive. Trying do determine $MYNAME pid using ps(1).\n";
+			return get_pid_ps();
+		}
+		
+		return $pid;
+	} else {
+		print STDERR "WARNING: Trying do determine $MYNAME pid using ps(1).\n";
+		return get_pid_ps();
+	}
+
+	return 0;
+}
+
+sub get_pid_file {
+	my ($file) = @_;
+	$file = $daemon_pidfile unless (defined $file);
+	
+	unless (-f $file && -r $file) {
+		print STDERR "WARNING: Pid file '$file' does not exist, is not readable or is not a plain file.\n";
+		return 0;
+	}
+
+	$Error = "";
+
+	my $fd = IO::File->new($file, 'r');
+	unless (defined $fd) {
+		$Error = "Unable to read file '$file': $!";
+		return 0;
+	}
+
+	my $line = $fd->getline();
+	# remove anything but digits.
+	$line =~ s/[^0-9]+//g;
+	$fd->close();
+	$fd = undef;
+
+	return $line;
+}
+
+sub get_pid_ps {
+	my $fd = undef;
+	unless (open($fd, "ps -ef |")) {
+		$Error = "Error: Unable to open pipe to ps(1) command: $!";
+		return 0;
+	}
+	
+	# read the whole thing
+	my $pid = 0;
+	while (<$fd>) {
+		$_ =~ s/^\s+//g;
+		$_ =~ s/\s+$//g;
+		my @tmp = split(/\s+/, $_);
+		$pid = $tmp[1] if ($tmp[7] eq $MYNAME && $tmp[8] =~ m/master/);
+	}
+	close($fd);
+
+	return $pid;
+}
+
 #############################################################
 #                          MAIN                             #
 #############################################################
@@ -964,8 +1107,12 @@ sub daemon_action {
 # (but don't bother if it does not exist)
 load_config_file($default_config_file);
 
+# configure command line parser
+Getopt::Long::Configure(
+	"bundling"
+);
 my $r = GetOptions(
-	'c|conf=s' => sub {
+	'c|config=s' => sub {
 		unless (load_config_file($_[1])) {
 			print STDERR "$Error\n";
 			exit 1;
@@ -1012,8 +1159,8 @@ my $r = GetOptions(
 		my $i = 0;
 		while (<$fd>) {
 			$i++;
-			next if ($i < 107);
-			last if ($i > 590);
+			next if ($i < 164);
+			last if ($i > 649);
 			if ($_ =~ m/ die/) {
 				$_ =~ s/^[#\s]+//g;
 			}
@@ -1053,10 +1200,14 @@ unless ($r) {
 	exit 1;
 }
 
+# fetch daemon action
+my $action = shift(@ARGV);
+$action = "start" unless (defined $action);
+
 # initialize logging subsystem
-$log = logger_init();
+$log = logger_init($action);
 
 # heh, run desired action
-exit (! daemon_action(shift(@ARGV)));
+exit (! daemon_action($action));
 
 # EOF

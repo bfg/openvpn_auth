@@ -27,6 +27,12 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
+
 package Net::OpenVPN::Auth::IMAP;
 
 @ISA = qw(Net::OpenVPN::Auth);
@@ -190,7 +196,7 @@ sub _connect {
 		$self->{_log}->error($self->{error});
 		return 0;
 	}
-	
+
 	# read server greeting
 	return 0 unless ($self->_readResponse($sock));
 	

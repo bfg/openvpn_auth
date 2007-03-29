@@ -1,5 +1,8 @@
 0.20 WISHLIST:
 
+General:
+	- better documentation and website
+
 Authentication daemon:
 	- multiple accept interfaces/ports
 	- SSL/TLS secured communication with authentication client
@@ -8,5 +11,10 @@ Authentication daemon:
 
 Authentication client:
 	- support for authentication server failover
+	  (multiple authentication server support)
 	- SSL/TLS secured communication with authentication server
+	- implement authentication client as shared object, which
+	  can be loaded as openvpn plugin?
 
+Client connect script:
+	- make it non-LDAP specific -> create infrastructure of plugins

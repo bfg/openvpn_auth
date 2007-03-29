@@ -27,6 +27,12 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
+
 package Net::OpenVPN::Auth::SASL;
 
 @ISA = qw(Net::OpenVPN::Auth);
@@ -88,6 +94,7 @@ sub clearParams {
 	$self->SUPER::clearParams();
 
 	$self->{sasl_service} = "openvpn";
+	$self->{mechanism} = "PLAIN";
 
 	return 1;
 }
@@ -101,7 +108,7 @@ sub authenticate {
  
  
  	my $sasl = Authen::SASL->new (
-		mechanism => "PLAIN",
+		mechanism => $self->{mechanism},
 		callback => {
 			checkpass => \&checkpass,
 			canonuser => \&canonuser,
@@ -115,11 +122,11 @@ sub authenticate {
  	# Client has to start always
  	sendreply( $conn->server_start( &getreply() ) );
 
-	while ($conn->need_step) {
+	while ($conn->need_step()) {
 		sendreply( $conn->server_step( &getreply() ) );
  	}
 
-	return 1 if ($conn->code == 0);
+	return 1 if ($conn->code() == 0);
 	return 0;
 }
 

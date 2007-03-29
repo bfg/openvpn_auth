@@ -1,0 +1,46 @@
+
+This is basic, "all you need", chroot directory sandbox
+if you're running linux. I'm running x86_64 architecture
+(intel emt-64) on slamd-64.
+
+If you're running i386, you need to copy files from /lib :)
+
+So, this is my chroot structure.
+
+
+root@openvpn-server:/export/chroot/openvpn_authd# ls -Rl
+.:
+total 0
+drwxr-xr-x  2 root root  60 Dec  6 19:08 dev/
+drwxr-xr-x  2 root root 180 Dec  6 19:01 etc/
+drwxr-xr-x  2 root root 200 Dec  6 19:13 lib64/
+drwxrwxrwt  2 root root  60 Dec  6 19:10 tmp/
+
+./dev:
+total 0
+srw-rw-rw-  1 root root 0 Dec  6 19:08 log=					<==== Essential!!! openvpn_authd.pl dies right after chrooting if /dev/log syslogd listening socket does not exist or does not accept connections
+
+./etc:
+total 32
+-rw-r--r--  1 root root  528 Dec  5 11:15 group
+-rw-r--r--  1 root root   95 Dec  6 16:27 hosts
+-rw-r--r--  1 root root  233 Nov 29 20:37 networks
+-rw-r--r--  1 root root 1083 Nov 29 20:37 nsswitch.conf
+-rw-r--r--  1 root root  785 Dec  5 11:15 passwd
+-rw-r--r--  1 root root 5748 Nov 29 20:37 protocols
+-rw-r--r--  1 root root   88 Nov 29 20:37 resolv.conf		<=== Essential, when using network services
+
+./lib64:
+total 208
+-rwxr-xr-x  1 root root 39792 Oct 20 02:53 libnss_compat-2.3.5.so*
+lrwxrwxrwx  1 root root    22 Dec  6 19:01 libnss_compat.so.2 -> libnss_compat-2.3.5.so*
+-rwxr-xr-x  1 root root 22904 Oct 20 01:23 libnss_dns-2.3.5.so*
+lrwxrwxrwx  1 root root    19 Dec  6 19:01 libnss_dns.so.2 -> libnss_dns-2.3.5.so*
+-rwxr-xr-x  1 root root 47720 Oct 20 01:23 libnss_files-2.3.5.so*
+lrwxrwxrwx  1 root root    21 Dec  6 19:01 libnss_files.so.2 -> libnss_files-2.3.5.so*
+-rwxr-xr-x  1 root root 89216 Oct 20 02:53 libresolv-2.3.5.so*
+lrwxrwxrwx  1 root root    18 Dec  6 19:01 libresolv.so.2 -> libresolv-2.3.5.so*
+
+./tmp:
+total 0
+-rw-r--r--  1 nobody nogroup 0 Dec  6 19:17 openvpn_authd.pl.lock

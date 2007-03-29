@@ -27,6 +27,12 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
+
 package Net::OpenVPN::Auth::LDAP;
 
 @ISA = qw(Net::OpenVPN::Auth);
@@ -79,7 +85,16 @@ password hashing algorithm when retrieved password doesn't have {PASSWORD_HASH_T
 to set this property. This property is used only, when B<auth_method> is set to B<pass_attr>, otherwise is completely ignored. Supported password hashes:
 B<PLAIN, CRYPTMD5, MD5, NTLM, SHA1, SSHA>
 
-B<host> (string, "127.0.0.1") LDAP server hostname or ip address.
+B<host> (string, "127.0.0.1") LDAP server hostname or ip address. If you want to specifiy multiple ldap servers, you can separate them using comma (,) or
+semicolon (;) character. B<Example>: ldap1.example.org, ldap2.example.org; ldap3.example.org
+
+B<randomize_host_connect_order> (boolean, 1) When you specify more than one host in B<host> or when dns record specified in B<host> configuration property
+specified is round-robin record and when this property is turned on (default) 
+connection will be made to random resolved ldap server. This option provides load balancing. However, when this option is turned off,
+connection will be first tried to first specified host, if it fails, then the next specified host will be tried.
+
+B<persistent_connection> (boolean, 0) If set to value of 1, ldap connection will not be destroyed after each authentication request. Setting this to 1
+can lead to better authentication performance, but it can lead to unpredictable results in case of ldap server restart.
 
 B<port> (integer, 389) LDAP server port.
 
@@ -165,6 +180,9 @@ sub clearParams {
 	#   "pass_attr"  :: search for user's dn, try to read password attribute, try to verify password hash  
 	$self->{auth_method} = "search";
 	
+	$self->{persistent_connection} = 0;		# connect/disconnect after every authenticate()
+	$self->{randomize_host_connect_order} = 1;		# use random resolved host address for connection
+	
 	# entry password attribute
 	$self->{password_attribute} = "userPassword";
 	$self->{password_default_hash} = "PLAIN";
@@ -216,7 +234,9 @@ sub authenticate {
 		$self->{error} = "Invalid LDAP password verification method: '" . $self->{auth_method} . "'.";
 	}
 
-	$self->_disconnect();
+	# disconnect if necessary
+	$self->_disconnect() unless ($self->{persistent_connection});
+
 	return $r;
 }
 
@@ -435,7 +455,8 @@ sub _ldapConnect {
 	my $conn = undef;
 
 	# resolve address
-	my @ips = $self->_resolve($host);
+	my @ips = $self->_resolve(split(/[\s;,]+/, $host));
+	return undef unless (@ips);
 
 	###############################################################
 	# PHASE I: connect                                            #
@@ -630,21 +651,33 @@ sub _disconnect {
 
 # resolves hostname to list of ip addresses
 sub _resolve {
-	my ($self, $host) = @_;
-	$self->{_log}->debug("Resolving address '$host'.");
-	my (undef, undef, undef, undef, @addrs) = gethostbyname($host);
-	unless (@addrs) {
-		$self->{error} = "Unable to resolve '$host'.";
-		$self->{_log}->fatal($self->{error});
-		return ();
-	}
-	map { $_ = inet_ntoa($_); } @addrs;
+	my $self = shift;
+	my @result = ();
+	
+	while (defined (my $host = shift(@_))) {
+		next unless (length($host) > 0);
 
-	if ($self->{_log}->is_debug()) {
-		$self->{_log}->debug("Resolved addresses: ", join(", ", @addrs));
+		$self->{_log}->debug("Resolving address '$host'.");
+		my (undef, undef, undef, undef, @addrs) = gethostbyname($host);
+		unless (@addrs) {
+			$self->{error} = "Unable to resolve '$host'.";
+			$self->{_log}->fatal($self->{error});
+			return ();
+		}
+		map { $_ = inet_ntoa($_); } @addrs;
+
+		if ($self->{_log}->is_debug()) {
+			$self->{_log}->debug("Resolved addresses: ", join(", ", @addrs));
+		}
+
+		push(@result, @addrs);
 	}
 
-	return shuffle(@addrs);
+	if ($self->{randomize_host_connect_order}) {
+		return shuffle(@result);
+	} else {
+		return @result;
+	}
 }
 
 # object destructor...

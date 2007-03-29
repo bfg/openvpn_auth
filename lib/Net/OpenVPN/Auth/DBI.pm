@@ -27,6 +27,12 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
+
 package Net::OpenVPN::Auth::DBI;
 
 @ISA = qw(Net::OpenVPN::Auth);
@@ -59,6 +65,9 @@ B<sufficient> (boolean, 0) successful authentication result is sufficient for en
 
 =head2 Module specific parameters
 
+B<persistent_connection> (boolean, 0) If set to value of 1, database connection will not be destroyed after each authentication request. Setting this to 1
+can lead to better authentication performance, but it can lead to unpredictable results in case of database server restart.
+
 B<dsn> (string, "DBI:mysql:database=openvpn;host=localhost") Data source name. Data source defines database type, database name,
 database server (if any) and other connection flags (if any). See perldoc DBD::<YOUR_DATABASE_DRIVER> for your database specific instructions. 
 
@@ -77,7 +86,7 @@ is done by backend driver.
  		username = %{username} AND
  		%{untrusted_port} BETWEEN 1024 AND 65536;
 
-B<password_hash> (string, PLAIN) password hashing algorithm. List of supported and enabled password hashing algorithms can be obtained via
+B<password_hash> (string, "CRYPTMD5") password hashing algorithm. List of supported and enabled password hashing algorithms can be obtained via
 openvpn_authd.pl --list-pwalgs command.
 
 =cut
@@ -109,11 +118,12 @@ sub clearParams {
 	my $self = shift;
 	$self->SUPER::clearParams();
 
+	$self->{persistent_connection} = 0;
 	$self->{dsn} = "DBI:mysql:database=openvpn;host=localhost";
 	$self->{username} = "";
 	$self->{password} = "";
 	$self->{sql} = "";
-	$self->{password_hash} = "CRPYTMD5";
+	$self->{password_hash} = "CRYPTMD5";
 
 	# database connection
 	$self->{_conn} = undef;
@@ -147,7 +157,7 @@ sub authenticate {
 	
 	outta_auth:
 
-	$self->_disconnect();
+	$self->_disconnect() unless ($self->{persistent_connection});
 	return $r;
 }
 
