@@ -30,10 +30,10 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# $Id$
-# $LastChangedRevision$
-# $LastChangedBy$
-# $LastChangedDate$
+# $Id:openvpn_authd.pl 188 2007-03-29 11:39:03Z bfg $
+# $LastChangedRevision:188 $
+# $LastChangedBy:bfg $
+# $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
 
 use strict;
 use warnings;
@@ -144,7 +144,7 @@ $MYNAME= basename($0);
 $VERSION = 0.10;
 
 my $Error = "";
-my $default_config_file = Cwd::realpath(File::Spec->catfile($FindBin::Bin,  "..", "etc", "openvpn_authd.conf"));
+my $default_config_file = "openvpn_authd.conf";
 
 $log = undef;				# logger object...
 
@@ -656,6 +656,14 @@ $extra_modules = [
 #                        FUNCTIONS                          #
 #############################################################
 
+my @config_file_dirs = (
+	"/etc",
+	"/etc/openvpn",
+	"/usr/local/etc",
+	"/usr/local/etc/openvpn",
+	Cwd::realpath(File::Spec->catfile($FindBin::Bin,  "..", "etc"))
+);
+
 my $daemon_proto = "tcp";
 
 sub pvar {
@@ -684,7 +692,13 @@ sub printhelp {
 	print STDERR "Some essential configuration parameters can be set only via configuration file.\n\n";
 	print STDERR "DAEMON OPTIONS:\n";
 	print STDERR "  -c     --config        Load configuration specified configuration file\n";
-	print STDERR "                         (Default: ", pvar($default_config_file), ")\n";
+	print STDERR "                         If this parameter is not specified, then daemon will\n";
+	print STDERR "                         look for configuration file named '$default_config_file'\n";
+	print STDERR "                         in the following list of directories:\n";
+	print STDERR "\n";
+	foreach my $dir (@config_file_dirs) {
+	print STDERR "                         $dir\n";
+	}
 	print STDERR "\n";
 	print STDERR "  -d     --daemon        Fork into background after startup (Default: ", pvar($daemon, 1), ")\n";
 	print STDERR "\n";
@@ -798,6 +812,18 @@ sub load_config_file {
 	}
 	
 	return 1;
+}
+
+sub load_config_default {
+	foreach my $dir (@config_file_dirs) {
+		my $f = File::Spec->catfile($dir, $default_config_file);
+		if (-f $f && -r $f) {
+			unless (load_config_file($f)) {
+				print STDERR "Unable to load configuration file '$f': $Error\n";
+				exit 1;
+			}
+		}
+	}
 }
 
 sub load_validators {
@@ -1105,7 +1131,7 @@ sub get_pid_ps {
 
 # try to load default config file
 # (but don't bother if it does not exist)
-load_config_file($default_config_file);
+load_config_default();
 
 # configure command line parser
 Getopt::Long::Configure(
