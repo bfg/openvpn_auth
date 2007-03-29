@@ -31,10 +31,10 @@
  */
 
 /**
- * $Id$
- * $LastChangedRevision$
- * $LastChangedBy$
- * $LastChangedDate$
+ * $Id:openvpn_auth_client.c 188 2007-03-29 11:39:03Z bfg $
+ * $LastChangedRevision:188 $
+ * $LastChangedBy:bfg $
+ * $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
  */
 
 #define _GNU_SOURCE
@@ -52,13 +52,14 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <libgen.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <syslog.h>
 #include <ctype.h>
 #include <signal.h>
 #include <libgen.h>
+#include <sys/ioctl.h>
+#include <termio.h>
 
 #define VERSION "0.1"
 
@@ -102,9 +103,26 @@ char val_buf[GEN_BUF_SIZE];
 
 char *config_files[] = {
 	"/etc/openvpn_authc.conf",
+	"/etc/openvpn/openvpn_authc.conf",
 	"/usr/local/etc/openvpn_authc.conf",
+	"/usr/local/etc/openvpn/openvpn_authc.conf",
 	".openvpn_authc.conf"
 };
+
+void chomp (char *str) {
+	int len = 0;
+	len = strlen(str);
+	int i = len - 1;
+
+	while (i >= 0) {
+		if (str[i] == '\f' || str[i] == '\r' || str[i] == '\n') {
+			str[i] = '\0';
+			i--;
+		}
+		else
+			break;
+	}
+}
 
 /**
  * logs message and optionally prints it to STDERR
@@ -193,13 +211,24 @@ void printhelp (void) {
 	fprintf(stderr, "CONFIGURATION FILE AUTO LOAD ORDER:\n");
 	fprintf(stderr, "Becouse of specifics of openvpn(8) daemon, this program automatically\n");
 	fprintf(stderr, "tries to load configuration files in the following order:\n\n");	
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 5; i++)
 		fprintf(stderr, "\t%s\n", config_files[i]);
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Process of parsing configuration files stops when first\n");
 	fprintf(stderr, "first existing file has been successfully parsed.\n");
-
 	fprintf(stderr, "\n");
+
+	fprintf(stderr, "TEST MODE OPTIONS:\n");
+	fprintf(stderr, "You can use \"test mode\" to test client's credentials from\n");
+	fprintf(stderr, "command line.\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "  -U   --user             Username\n");
+	fprintf(stderr, "  -P   --pass             User's password\n");
+	fprintf(stderr, "  -C   --cn               Certificate common name\n");
+	fprintf(stderr, "  -X   --client-ip        VPN client's IP address\n");
+	fprintf(stderr, "  -Y   --client-port      VPN client's connection source port number\n");
+	fprintf(stderr, "\n");
+
 	fprintf(stderr, "OTHER OPTIONS:\n");
 	fprintf(stderr, "  -h   --help             This little help\n");
 	fprintf(stderr, "  -V   --version          Prints out program version\n");
@@ -359,7 +388,7 @@ int load_config_file (char *file) {
  */
 void load_config_files (void) {
 	int i;
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 5; i++) {
 		if (load_config_file(config_files[i])) {
 			/** printf("Configuration file %s has been successfully parsed.\n", config_files[i]); */
 			break;
@@ -596,12 +625,20 @@ int main (int argc, char **argv) {
 	char *tmp;
 	struct auth *auth_str;
 	struct sigaction act;
+	struct termio tty, oldtty;
+	int cred_from_cmdl = 0;
 
 	MYNAME = basename(argv[0]);
 	strncpy(hostname, DEFAULT_HOSTNAME, sizeof(hostname));
 
 	/** try to load configuration files */
 	load_config_files();
+
+	/** initialize authentication structure */
+	if ((auth_str = authstruct_init()) == NULL) {
+		log_msg("Unable to initialize authentication structure... Possibly out of memory.");
+		return 1;
+	}
 
 	/* configure command line parser */
 	static struct option long_options[] = {
@@ -615,6 +652,12 @@ int main (int argc, char **argv) {
 		{"config", required_argument, NULL, 'c'},
 		{"hostname", required_argument, NULL, 'H'},
 		{"port", required_argument, NULL, 'p'},
+
+		{"user", required_argument, NULL, 'U'},
+		{"pass", required_argument, NULL, 'P'},
+		{"cn", required_argument, NULL, 'C'},
+		{"client-ip", required_argument, NULL, 'X'},
+		{"client-port", required_argument, NULL, 'Y'},
 	};
 
 	
@@ -623,7 +666,7 @@ int main (int argc, char **argv) {
 	int opt_idx = 0;		/* option index */
 	while (r) {
 		int c = 0;			/* option character */
-		c = getopt_long(argc, argv, "c:H:p:vhdV", long_options, &opt_idx);
+		c = getopt_long(argc, argv, "c:H:p:U:P:C:X:Y:vhdV", long_options, &opt_idx);
 
 		switch (c) {
 			case 'c':
@@ -637,6 +680,26 @@ int main (int argc, char **argv) {
 				break;
 			case 'p':
 				port = atoi(optarg);
+				break;
+			case 'U':
+				strncpy(auth_str->username, optarg, CRED_BUF_SIZE);
+				cred_from_cmdl = 1;
+				break;
+			case 'P':
+				strncpy(auth_str->password, optarg, CRED_BUF_SIZE);
+				cred_from_cmdl = 1;
+				break;
+			case 'C':
+				auth_str->common_name = optarg;
+				cred_from_cmdl = 1;
+				break;
+			case 'X':
+				auth_str->untrusted_ip = optarg;
+				cred_from_cmdl = 1;
+				break;
+			case 'Y':
+				auth_str->untrusted_port = atoi(optarg);
+				cred_from_cmdl = 1;
 				break;
 			case 'v':
 				verbose = 1;
@@ -666,18 +729,47 @@ int main (int argc, char **argv) {
 	/** check if we're really called as openvpn argument */
 	if ((tmp = getenv("script_type")) == NULL || (strcmp(tmp, "auth-user-pass-verify") != 0 && strcmp(tmp, "user-pass-verify") != 0)) {
 		log_msg("Program is not executed as --auth-user-pass-verify openvpn server argument. Environment variable \"script_type\" != \"(auth-)?user-pass-verify\" (%s)", tmp);
+		cred_from_cmdl = 1;
 	}
 
-	/** initialize authentication structure */
-	if ((auth_str = authstruct_init()) == NULL) {
-		log_msg("Unable to initialize authentication structure... Possibly out of memory.");
-		return 1;
+	/** openvpn server mode? */
+	if (! cred_from_cmdl) {
+		/** retrieve credentials */
+		if (! credentials_retr(auth_str, argv[optind]))
+			return 1;
 	}
-
-	/** retrieve credentials */
-	if (! credentials_retr(auth_str, argv[optind]))
-		return 1;
+	/** testing mode? */
+	else {
+		verbose = 1;
+		log_msg("Program invoked in TEST mode.");
 		
+		/** no provided password? */
+		if (strlen(auth_str->password) < 1 ) {
+			printf("No password was given from command line.\n");
+			printf("Password: ");
+			
+			/**
+			 ** Save the old tty settings, and get rid of echo
+			 ** for the new tty settings
+			 **/
+			ioctl(0, TCGETA, &oldtty);
+			tty = oldtty;
+			tty.c_lflag    &= ~(ICANON|ECHO|ECHOE|ECHOK|ECHONL);
+			tty.c_cc[VMIN]  = 1;
+			tty.c_cc[VTIME] = 0;
+			ioctl(0, TCSETA, &tty);
+			
+			/** read password */
+			fgets(auth_str->password, CRED_BUF_SIZE, stdin);
+			chomp(auth_str->password);
+			
+			/** reset old tty settings */
+			ioctl(0, TCSETA, &oldtty);
+			printf("\n");
+		}
+		fprintf(stderr, "\n--- VERBOSE OUTPUT ---\n");
+	}
+	
 	/** install signal handler */
 	act.sa_handler = sigh_alrm;
 	sigemptyset(&act.sa_mask);
@@ -690,6 +782,10 @@ int main (int argc, char **argv) {
 
 	/** perform authentication */
 	r = authenticate(auth_str);
+	
+	if (cred_from_cmdl)
+		fprintf(stderr, "--- VERBOSE OUTPUT ---\n\n");
+		printf("Authentication %s.\n", ((r) ? "SUCCEEDED" : "FAILED"));
 
 	/** cleanup */
 	authstruct_destroy(auth_str);
