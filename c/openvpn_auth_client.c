@@ -596,8 +596,7 @@ int authenticate (struct auth *ptr) {
 
 	/** chop result code and message */
 	memset(srv_code, '\0', sizeof(srv_code));
-	int len = strlen(read_buf);
-	if (read_buf[len - 1] == '\n') read_buf[len - 1] = '\0';
+	chomp(read_buf);
 	strncpy(srv_code, read_buf, 2);
 
 	if (strcasecmp(srv_code, "OK") != 0)
@@ -767,6 +766,7 @@ int main (int argc, char **argv) {
 			ioctl(0, TCSETA, &oldtty);
 			printf("\n");
 		}
+
 		fprintf(stderr, "\n--- VERBOSE OUTPUT ---\n");
 	}
 	
@@ -783,9 +783,10 @@ int main (int argc, char **argv) {
 	/** perform authentication */
 	r = authenticate(auth_str);
 	
-	if (cred_from_cmdl)
+	if (cred_from_cmdl) {
 		fprintf(stderr, "--- VERBOSE OUTPUT ---\n\n");
 		printf("Authentication %s.\n", ((r) ? "SUCCEEDED" : "FAILED"));
+	}
 
 	/** cleanup */
 	authstruct_destroy(auth_str);
