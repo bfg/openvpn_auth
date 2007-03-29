@@ -1,0 +1,12 @@
+0.20 WISHLIST:
+
+Authentication daemon:
+	- multiple accept interfaces/ports
+	- SSL/TLS secured communication with authentication client
+	- implement SSHA password verification
+	- new authentication backends...
+
+Authentication client:
+	- support for authentication server failover
+	- SSL/TLS secured communication with authentication server
+
