@@ -1,0 +1,472 @@
+#############################################################
+#      OpenVPN authentication daemon configuration file     #
+#############################################################
+
+# WARNING: DO NOT REMOVE THE FOLLOWING LINES:
+use strict;
+use warnings;
+
+#
+# GENERAL NOTES
+#
+# excerpt taken from configuration file of excellent opensource project
+# called amavisd-new <http://www.ijs.si/software/amavisd/>
+# by Mark Martinec <http://www.ijs.si/people/mark/>.
+#
+#  This file is a normal Perl code, interpreted by Perl itself.
+#  - make sure this file (or directory where it resides) is NOT WRITABLE
+#    by mere mortals, otherwise it represents a severe security risk!
+#  - for values which are interpreted as booleans, it is recommended
+#    to use 1 for true, and 0 or undef or '' for false.
+#  - Perl syntax applies. Most notably: strings in "" may include variables
+#    (which start with $ or @); to include characters @ and $ in double
+#    quoted strings, precede them by a backslash; in single-quoted strings
+#    the $ and @ lose their special meaning, so it is usually easier to use
+#    single quoted strings. Still, in both cases backslash needs to be doubled.
+#
+
+# AuthStruct validation functions
+#
+# If you use AuthStruct authentication module
+# and you wrote your validation functions in some file
+# (see sample_validation_functions.conf for examples),
+# you can load them here.
+#
+# NOTE: This file is evaluated before entering chroot jail
+#       (if requested; see configuration directive $chroot).
+#
+# Be shure to put load_validators option before $auth_backends
+# configuration directive, otherwise you won't be able to specify
+# validation function into $auth_backends.
+#
+# load_validators("/path/to/filename");
+
+# Authentication module definition
+#
+# Run openvpn_authd.pl --list for list of supported authentication backends
+# Run openvpn_authd.pl --doc <DRIVER> for complete driver documentation
+#
+# SYNTAX:
+# $auth_backends = {
+#
+#   # backend name can be anything, but it must
+# 	# unique for each declared module
+#   auth_backend_1 => {
+#
+# 		# is successful authentication result by
+# 		# this module sufficient for successful
+# 		# authentication response?
+# 		sufficient => 0 | 1,
+#
+# 		# is successful authentication result
+# 		# required condition for successful
+#		# authentication response?
+#		# 
+# 		# Set this to 1 if you declare multiple
+# 		# authentication modules and you want
+# 		# that this module must always return successful
+# 		# authentication response in order to check other
+# 		# authentication modules in authentication chain. 
+#		# 
+# 		required => 0 | 1,
+#
+#		# authentication backend driver
+#		# 
+#		# For list of available drivers run
+#		# openvpn_authd.pl --list
+#		driver => "ModuleDriverName",
+#
+#		# Each driver accepts/requires different
+# 		# driver parameters in order to function
+# 		# correctly. For list and description
+# 		# of driver parameters, run
+# 		# openvpn_authd.pl --doc DRIVER_NAME
+#		driver_param1 => "value1",
+# 		driver_param2 => "value2",
+# 		driver_paramN => "valueN",
+# 	},
+#
+# 	auth_backend_2 => {
+#		# You can specify as many authentication backends
+# 		# as you want. You can even specify multiple authentication
+# 		# modules with unique names, but with the same driver, for
+#		# example, you want to authenticate your users from
+#		# 3 ldap servers (all of them with completely different setups).
+#	},
+#
+# };
+#
+# Run openvpn_authd.pl --doc <DRIVER> for complete list of configuration 
+# properties and configration examples.
+#
+# EXAMPLE:
+#
+# $auth_backends = {
+#
+# 	allow => {
+#		# BE EXTREMELY CAREFUL
+#		# WITH THIS BACKEND.
+#		# USE FOR TESTING PURPOSES ONLY!
+# 		driver => 'Allow',
+#
+#		sufficient => 0,
+# 		required => 0, 		 
+# 	},
+#
+# 	deny => {
+#		# IT IS GOOD IDEA TO PUT THIS
+#		# BACKEND AT THE END OF THE AUTH CHAIN
+#		# IN $auth_order.
+#		# However, this is default behaviour. 
+# 		driver => 'Deny',
+#
+#		sufficient => 0,
+# 		required => 0, 		
+# 	},
+#
+# 	ldap_service => {
+# 		driver => 'LDAP',
+#
+#		sufficient => 1,
+# 		required => 0,
+#		auth_method => 'search',
+#		host => 'ldap.example.org',
+#		tls => 1,
+#		search_basedn => 'ou=openvpn,dc=example,dc=org',
+#		search_filter => '(&(objectClass=openVPNUser)(uid=%{username})(active=TRUE))',
+#		search_scope => 'sub',
+#		timeout => 2
+# 	},
+#
+# 	kerberos_service => {
+# 		driver => 'Krb5',
+#
+#		sufficient => 1,
+# 		required => 0, 		 		
+# 		realm => 'EXAMPLE.ORG'
+# 	},
+#
+# 	flat_file => {
+# 		driver => 'File',
+#
+#		sufficient => 1,
+# 		required => 0, 
+#		file => '/path/to/passwd.txt',
+#		password_hash => 'CRYPTMD5'
+# 	},
+#
+# 	imap_server => {
+# 		driver => 'IMAP',
+#
+#		sufficient => 0,
+# 		required => 0,
+#		host => 'imap.example.org',
+#		tls => 1,
+#		tls_version => 'tlsv1'
+# 	},
+#
+# 	pop3_server => {
+# 		driver => 'POP3',
+#
+#		sufficient => 0,
+# 		required => 0, 		
+#		host => 'pop3.example.org'
+#		tls => 1,
+#		tls_version => 'tlsv1'
+# 	},
+#
+# 	pam_lib => {
+# 		driver => 'PAM',
+#
+#		sufficient => 0,
+# 		required => 0,
+# 		pam_service => 'openvpn'
+# 	},
+#
+#	# MySQL example
+# 	sql_mysqldb => {
+# 		driver => 'DBI',
+#
+#		sufficient => 1,
+# 		required => 0,
+#		dsn => 'DBI:mysql:database=openvpn;hostname=127.0.0.1;port=3308',
+# 		username => 'db_user',
+# 		password => 'db_pass',
+# 		sql => 'SELECT pass FROM some_table WHERE user = %{username}',
+# 		password_hash => 'CRYPTMD5'
+# 	},
+#
+#	# PostgreSQL example
+# 	sql_pgdb => {
+# 		driver => 'DBI',
+#
+#		sufficient => 1,
+# 		required => 0,
+#		dsn => 'DBI:Pg:database=openvpn;hostname=127.0.0.1;port=5433',
+# 		username => 'db_user',
+# 		password => 'db_pass',
+# 		sql => 'SELECT pass FROM some_table WHERE user = %{username}',
+# 		password_hash => 'CRYPTMD5'
+# 	},
+#
+# 	sasl_lib => {
+# 		driver => 'SASL',
+#
+#		sufficient => 0,
+# 		required => 0,
+# 		sasl_service => 'openvpn' 
+# 	},
+#
+# 	validator => {
+# 		driver => 'AuthStruct',
+#
+# 		required => 1,
+# 		username => \ &sample_username_validator,
+# }
+#
+# };
+#
+# NOTE: All authentication backends are initialized before
+#       entering chroot jail (if requested;
+#       see configuration directive $chroot).
+#
+# Command line parameter: cannot be specified by command line
+# Type: hash reference
+# Default: {} (empty hash ref)
+$auth_backends = {};
+
+# Authentication module usage order.
+#
+# This configuration directive defines order in which
+# authentication backends, defined in $auth_backends
+# are used.
+# 
+# OpenVPN authentication daemon initializes only those
+# authentication backends, which names are found in
+# $auth_order, therefore you can define as many backends
+# as you want in $auth_backends, but use only few of them.
+# 
+# SYNTAX: 
+# $auth_order = [
+# 	"auth_backend_2",
+# 	"auth_backend_1",
+# 	"auth_backend_3"
+# ];
+#
+# In the above example authentication chain consists from
+# 'auth_backend2', 'auth_backend_1', 'auth_backend3' authentication
+# backends, which must be defined in $auth_backends. When authentication
+# starts, daemon first checks if 'auth_backend2' returns successfull
+# authentication, and then checks if this is required authentication backend
+# (see authentication backend parameter 'required') and if backend is required,
+# then checks next authentication backend (in our case 'auth_backend_1'), otherwise
+# just returns successfull authentication result. If authentication in authentication
+# backend 'auth_backend_2' fails and backend has not set 'required' flag, the next
+# authentication backend from authentication chain is probed. If first backend
+# returns successful authentication response and has 'sufficient' flag set, successful
+# authentication response is returned immediately to authentication client.
+#
+# Empty $auth_order (empty authentication chain) always returnes unsuccessful
+# authentication response to authentication client.
+#
+# Command line parameter: cannot be specified by command line
+# Type: array reference
+# Default: [] (empty array ref)
+$auth_order = [];
+
+# Change root directory (chroot) after server startup?
+#
+# Setting this value requires you to start
+# authentication daemon as superuser (root).
+# This option is completely ignored on Win32
+# platform.
+# 
+# For maximum security, run authentication
+# daemon in chrooted environment and set 
+# $user, $group directives to non-privileged
+# user/group.
+#
+# NOTE: Running in chroot environment sometimes
+# requires placing several files into chroot jail,
+# depending on your operating system.
+#
+# You'll possibly need:
+#   - <chroot>/dev/log syslog listening socket
+#   - <chroot>/etc/{services,protocols,networks,nsswitch.conf,host.conf,resolv.conf},
+#     <chroot>/lib/libnss_{resolv,compat,files,dns}.so.* (Linux)
+#     for any authentication backends, that require network connections
+#     (LDAP, DBI, IMAP, POP3, Krb5)
+#   - <chroot>/etc/krb5.conf for Krb5 authentication module
+#
+# Command line parameter: -t | --chroot
+# Type: string
+# Default: undef (don't chroot)
+$chroot = undef;
+
+# Fork into background and become daemon?
+#
+# Command line parameter: -d | --daemon
+# Type: boolean
+# Default: 0
+$daemon = 0;
+
+# Daemon listening address or UNIX domain
+# listening socket path. If you want to use
+# UNIX domain sockets, path must start with
+# '/' character.
+#
+# Command line parameter: -H | --listen-addr
+# Type: string
+# Default: "*" (listen on all addresses using tcp socket)
+$daemon_host = "*";
+
+# Daemon listening port when using tcp
+# listening sockets. This setting is quietly
+# ignored if UNIX domain sockets are in use.
+#
+# Command line parameter: -P | --port
+# Type: integer
+# Default: 1559
+$daemon_port = 1559;
+		
+# Change uid after server startup.
+#
+# Command line parameter: -u | --user
+# Type: string
+# Default: undef (don't change uid)
+$daemon_user = undef;
+
+# Change gid after server startup.
+#
+# Command line parameter: -g | --group
+# Type: string
+# Default: undef (don't change gid)
+$daemon_group = undef;
+
+# Maximum number of authentication requests
+# served by single authentication worker
+#
+# Command line parameter: --max-requests
+# Type: integer
+# Default: 100
+$daemon_maxreqs = 100;
+
+# Daemon serialization method
+#
+# Valid values: semaphore, flock, pipe
+#
+# Command line parameter: -S | --serialize
+# Type: string
+# Default: "semaphore"
+$daemon_serialize = "semaphore";
+
+# Daemon pid file
+#
+# Command line parameter: -p | --pid-file 
+# Type: string
+# Default: "/tmp/openvpn_authd.pl.pid"
+$daemon_pidfile = File::Spec->catfile(File::Spec->tmpdir(), $MYNAME . ".pid");
+
+# Daemon serialization lock file
+#
+# Command line parameter: -l | --lock-file
+# Type: string
+# Default: "/tmp/openvpn_authd.pl.lock"
+$daemon_lockfile = File::Spec->catfile(File::Spec->tmpdir(), $MYNAME . ".lock");
+
+# Minimum number of authentication worker servers
+#
+# Command line parameter: --min-servers
+# Type: integer
+# Default: 1
+$daemon_min_servers = 1;
+
+# Maximum number of authentication worker servers
+#
+# Command line parameter: --max-servers
+# Type: integer
+# Default: 10
+$daemon_max_servers = 10;
+
+# Minimum number of spare worker servers
+#
+# Command line parameter: --min-spares
+# Type: integer
+# Default: 1
+$daemon_min_spares = 1;
+
+# Maximum number of spare worker servers
+#
+# Command line parameter: --max-spares
+# Type: integer
+# Default: 1
+$daemon_max_spares = 1;
+
+# Allowed/denied authentication client hosts.
+#
+# If allow or deny options are given, the incoming client
+# must match a $hosts_allow and not match a $hosts_deny
+# or the client connection will be closed.
+#
+# NOTE: These two directives are completely
+#       ignored when authentication daemon accepts
+#       connections via unix domain socket.
+#
+# Type: array reference
+# Default: [] (empty array reference, no allowed/denied hosts)
+$hosts_allow = [];
+$hosts_deny = [];
+
+# Log::Log4perl logging configuration file
+#
+# Basic syslog logging, suitable for most users is
+# already built-in openvpn_authd. If you want really
+# customize it, or send logging output to somewhere
+# else than syslog, just create Log4perl configuration
+# file and specify it here.
+#
+# Command line parameter: -L | --log-config
+# Type: string
+# Default: undef (use built-in logging settings)
+$log_config_file = undef;
+
+# Heavy daemon and backend library debugging.
+# Use only when you're in trouble :)
+#
+# NOTE: This option is completely ignored
+# when $log_config_file is set by config
+# file or by command line parameter
+#
+# Command line parameter: -D | --debug
+# Type: boolean
+# Default: 0
+$debug = 0;
+
+# List of preloaded perl modules
+#
+# If you're running authentication daemon in chroot
+# jail and you're getting error messages in log
+# about missing modules, you can specify them
+# here and they will be loaded before server startup.
+#
+# EXAMPLE:
+#
+# $extra_modules = [
+# 	'Bit::Vector',
+# 	'DBD::mysql',
+# 	'DBD::Pg'
+# ]; 
+#
+# Type: array reference
+# Default: [] (don't preload any additional modules)
+$extra_modules = [];
+
+# Comment out the following line
+# in order to make this configuration
+# file valid
+die "...at least read the whole goddamn configuration file."
+
+# Don't remove/comment the following line
+1;
+
+# EOF

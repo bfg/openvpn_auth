@@ -1,0 +1,39 @@
+#
+# Log4perl logging configuration file
+#
+# See http://search.cpan.org/~mschilli/Log-Log4perl-1.08/lib/Log/Log4perl.pm
+# for instructions, examples and full documentation.
+#
+
+#
+# NOTE: use this file as template for creating your own
+#       custom logging configuration file, but only in case
+#       that you're not satisfied with openvpn_authd built-in
+#		logging system.
+
+
+##########################################################
+#                     ROOT LOGGER                        #
+##########################################################
+
+log4perl.rootLogger=INFO, LogFile
+
+# heavy authentication backend debug
+# (enable in case of troubles)
+# log4perl.logger.Net.OpenVPN.Auth = All, DebugLogFile
+
+##########################################################
+#                      APPENDERS                         #
+##########################################################
+
+# normal file
+log4perl.appender.LogFile							= Log::Log4perl::Appender::File
+log4perl.appender.LogFile.filename					= /var/log/openvpn_authd.log
+log4perl.appender.LogFile.layout.ConversionPattern	= %m%n
+
+# debug file
+log4perl.appender.DebugLogFile							= Log::Log4perl::Appender::File
+log4perl.appender.DebugLogFile.filename					= /var/log/openvpn_authd-debug.log
+log4perl.appender.DebugLogFile.layout.ConversionPattern	= %p: %F{1}, line %L, %M{1}(): %m%n
+
+# EOF
