@@ -31,10 +31,10 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# $Id: aa_monitor.pl 162 2007-03-13 16:33:14Z bfg $
-# $LastChangedRevision: 162 $
-# $LastChangedBy: bfg $
-# $LastChangedDate: 2007-03-13 17:33:14 +0100 (Tue, 13 Mar 2007) $
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
 
 use strict;
 use warnings;
