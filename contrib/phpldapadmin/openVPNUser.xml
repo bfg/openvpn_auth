@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<!--
+ - $Id$
+ - $LastChangedRevision$
+ - $LastChangedBy$
+ - $LastChangedDate$
+-->
+<template>
+	<title>OpenVPN account</title>
+	<icon>images/network.png</icon>
+	<description>New OpenVPN Account</description>
+	<askcontainer>0</askcontainer>
+	<rdn>cn</rdn>
+	<visible>1</visible>
+
+	<objectClasses>
+		<objectClass id="person"></objectClass>
+		<objectClass id="openVPNUser"></objectClass>
+	</objectClasses>
+		
+	<attributes>
+		<attribute id="cn">
+			<display>Common Name</display>
+			<order>3</order>
+			<hint>In some cases this can be also username</hint>
+			<page>1</page>
+			<helper>
+				<display>Example Password</display>
+				<id>__sample_password</id>
+				<value>=php.Function(password_generate)</value>
+			</helper>
+		</attribute>
+		
+		<attribute id="userPassword">
+			<helper>
+				<default>md5crypt</default>
+				<display>Encryption</display>
+				<location>side</location>
+				<id>enc</id>
+
+				<value>blowfish</value>
+				<value>clear</value>
+				<value>crypt</value>
+				<value>ext_des</value>
+				<value>md5</value>
+				<value>md5crypt</value>
+				<value>sha</value>
+				<value>smd5</value>
+				<value>ssha</value>
+			</helper>
+	
+			<page>1</page>
+			<display>Password</display>
+			<icon>images/lock.png</icon>
+			<order>5</order>
+			<post>=php.Password(%enc%,%userPassword%)</post>
+			<spacer>1</spacer>
+			<type>password</type>
+			<verify>1</verify>
+			<hint>Check example password for ideas regarding passwords.</hint>
+		</attribute>
+
+		<attribute id="openvpnIfconfig">
+			<page>1</page>
+			<display>IP Address</display>
+			<hint>Client's statically assigned ip address</hint>
+		</attribute>
+
+		<attribute id="openvpnClientx509CN">
+			<page>1</page>
+			<display>Certificate common name</display>
+			<hint>x509 certificate CN= field</hint>
+		</attribute>
+
+
+</attributes>
+</template>

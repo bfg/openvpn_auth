@@ -1,0 +1,317 @@
+#
+# WHAT:		OpenVPN server OpenLDAP schema extension
+# AUTHOR:	Brane F. Gracnar <bfg@interseek.si>
+# DATE:		22.03.2007
+#
+
+# $Id$
+# $LastChangedRevision$
+# $LastChangedBy$
+# $LastChangedDate$
+
+################################################################################
+#                   INFO FOR SCHEMA DEVELOPERS/EXTENDERS                       #
+################################################################################
+
+# SCHEMA OID STRUCTURE:
+#
+# NOTE: According to IANA enterprise numbers registry, available at
+#       http://www.iana.org/assignments/enterprise-numbers, OpenVPN
+#       Solutions LLC. has assigned number 27340.
+#
+#
+#         1.3.6.1.4.1.27340
+#
+#  +-- 1.3.6.1.4.1.27340 <openVPN OID root>
+#  |
+#  +-- +-- 1.3.6.1.4.1.27340.100 <openvpn client configuration OID root>
+#      |
+#      +-- 1.3.6.1.4.1.27340.100.1 <openvpn object attribute OID root>
+#      |
+#      +-- 1.3.6.1.4.1.27340.100.2 <openvpn objectclass OID root>
+#
+
+################################################################################
+#                                ATTRIBUTES                                    #
+################################################################################
+
+#
+# From OpenVPN MAN(8)
+#
+# This is a partial list of options which can currently be pushed:
+# --push-reset
+# --route
+# --route-gateway
+# --route-delay
+# --redirect-gateway
+# --ip-win32
+# --dhcp-option
+# --inactive
+# --ping
+# --ping-exit
+# --ping-restart
+# --setenv
+# --persist-key
+# --persist-tun
+# --echo
+# --comp-lzo
+# --socket-flags
+# --sndbuf
+# --rcvbuf
+
+# --push-reset
+#
+# Don't inherit the global push list for a specific client instance.
+# Specify this option in a client-specific context such as with a
+# --client-config-dir configuration file. This option will ignore
+# --push options at the global config file level.
+#
+attributeType (
+	1.3.6.1.4.1.27340.100.1.1
+	NAME 'openvpnPushReset'
+	DESC 'Dont inherit the global push list for specific client instance. SYNTAX: {TRUE|FALSE}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.7
+	EQUALITY booleanMatch
+	SINGLE-VALUE )
+
+# --route network/IP [netmask] [gateway] [metric]
+#
+# Add route to routing table after connection is established. Multiple routes
+# can be specified. Routes will be automatically torn down in reverse order
+# prior to TUN/TAP device close.
+#
+attributeType (
+	1.3.6.1.4.1.27340.100.1.2
+	NAME 'openvpnRoute'
+	DESC 'Add route to routing table after connection is established. SYNTAX: {network|ip} [netmask] [gateway] [metric]'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch )
+
+# --route-delay
+#
+attributeType (
+	1.3.6.1.4.1.27340.100.1.3
+	NAME 'openvpnRouteDelay'
+	DESC 'Delay adding routes for specified amount of time after successful connection. SYNTAX: [n] [w]'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch
+	SINGLE-VALUE )
+
+# --redirect-gateway
+attributeType (
+	1.3.6.1.4.1.27340.100.1.4
+	NAME 'openvpnRedirectGateway'
+	DESC 'Automatically execute routing commands to cause all outgoing IP traffic to be redirected over the VPN. SYNTAX: {TRUE|FALSE}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.7
+	EQUALITY booleanMatch
+	SINGLE-VALUE )
+
+# --ip-win32
+#
+# When using --ifconfig on Windows, set the TAP-Win32 adapter IP address and
+# netmask using method. Don't use this option unless you are also using --ifconfig.
+#
+attributeType (
+	1.3.6.1.4.1.27340.100.1.5
+	NAME 'openvpnIPWin32'
+	DESC 'Set the TAP-Win32 adapter IP address and netmask using method. SYNTAX: {manual|dynamic [offset] [lease_time]|netsh|ipapi|adaptive}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch
+	SINGLE-VALUE )
+
+# --dhcp-option
+#
+# Set extended TAP-Win32 TCP/IP properties, must be used with --ip-win32 dynamic
+# or --ip-win32 adaptive. 
+#
+attributeType (
+	1.3.6.1.4.1.27340.100.1.6
+	NAME 'openvpnDHCPOption'
+	DESC 'Set extended TAP-Win32 TCP/IP properties. SYNTAX: [parm]'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch )
+
+# --inactive
+#
+# Causes OpenVPN to exit after n seconds of inactivity on the TUN/TAP device. 
+attributeType (
+	1.3.6.1.4.1.27340.100.1.7
+	NAME 'openvpnInactive'
+	DESC 'Causes OpenVPN to exit after n seconds of inactivity on the TUN/TAP device. SYNTAX: n [bytes]'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch
+	SINGLE-VALUE )
+
+# --ping
+#
+# Ping remote over the TCP/UDP control channel if no packets have been sent for
+# at least n seconds
+attributeType (
+	1.3.6.1.4.1.27340.100.1.8
+	NAME 'openvpnPing'
+	DESC 'Ping remote over the TCP/UDP control channel if no packets have been sent for at least n seconds. SYNTAX: n'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	EQUALITY integerMatch
+	SINGLE-VALUE )
+
+# --ping-exit
+# 
+# Causes OpenVPN to exit after n seconds pass without reception of a ping
+# or other packet from remote.
+#
+attributeType (
+	1.3.6.1.4.1.27340.100.1.9
+	NAME 'openvpnPingExit'
+	DESC 'Causes OpenVPN to exit after n seconds pass without reception of a ping or other packet from remote. SYNTAX: n'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	EQUALITY integerMatch
+	SINGLE-VALUE )
+
+# --ping-restart
+#
+# Similar to --ping-exit, but trigger a SIGUSR1 restart after n seconds pass
+# without reception of a ping or other packet from remote.
+attributeType (
+	1.3.6.1.4.1.27340.100.1.10
+	NAME 'openvpnPingRestart'
+	DESC 'Similar to --ping-exit, but trigger a SIGUSR1 restart after n seconds pass without reception of a ping or other packet from remote. SYNTAX: n'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	EQUALITY integerMatch
+	SINGLE-VALUE )
+
+# --setenv
+attributeType (
+	1.3.6.1.4.1.27340.100.1.11
+	NAME 'openvpnSetEnv'
+	DESC 'Set a custom environmental variable name=value to pass to script. SYNTAX: name value'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch
+	SINGLE-VALUE )
+
+# --persist-key
+attributeType (
+	1.3.6.1.4.1.27340.100.1.12
+	NAME 'openvpnPersistKey'
+	DESC 'Dont re-read key files across SIGUSR1 or --ping-restart.'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.7
+	EQUALITY booleanMatch
+	SINGLE-VALUE )
+
+# --persist-tun
+attributeType (
+	1.3.6.1.4.1.27340.100.1.13
+	NAME 'openvpnPersistTun'
+	DESC 'Dont close and reopen TUN/TAP device or run up/down scripts across SIGUSR1 or --ping-restart restarts. SYNTAX: {TRUE|FALSE}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.7
+	EQUALITY booleanMatch
+	SINGLE-VALUE )
+
+# --echo
+attributeType (
+	1.3.6.1.4.1.27340.100.1.14
+	NAME 'openvpnEcho'
+	DESC 'Echo parms to log output. SYNTAX: [echo_string]'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch )
+
+# --comp-lzo
+attributeType (
+	1.3.6.1.4.1.27340.100.1.15
+	NAME 'openvpnCompLZO'
+	DESC 'Use fast LZO compression. SYNTAX: {yes|no|adaptive}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch 
+	SINGLE-VALUE )
+
+# --socket-flags
+attributeType (
+	1.3.6.1.4.1.27340.100.1.16
+	NAME 'openvpnSocketFlags'
+	DESC 'Apply the given flags to the OpenVPN transport socket. Currently, only TCP_NODELAY is supported. SYNTAX: {socket_flags}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch 
+	SINGLE-VALUE )
+
+# --sndbuf
+attributeType (
+	1.3.6.1.4.1.27340.100.1.17
+	NAME 'openvpnSndBuf'
+	DESC 'Set the TCP/UDP socket send buffer size. Currently defaults to 65536 bytes. SYNTAX: n'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	EQUALITY integerMatch
+	SINGLE-VALUE )
+
+# --rcvbuf
+attributeType (
+	1.3.6.1.4.1.27340.100.1.18
+	NAME 'openvpnRcvBuf'
+	DESC 'Set the TCP/UDP socket receive buffer size. Currently defaults to 65536 bytes. SYNTAX: n'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	EQUALITY integerMatch
+	SINGLE-VALUE )
+
+# --topology
+attributeType (
+	1.3.6.1.4.1.27340.100.1.19
+	NAME 'openvpnTopology'
+	DESC 'Configure virtual addressing topology when running in --dev tun mode. SYNTAX: {net30|p2p|subnet}'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch 
+	SINGLE-VALUE )
+
+# --ifconfig-push
+attributeType (
+	1.3.6.1.4.1.27340.100.1.20
+	NAME 'openvpnIfconfig'
+	DESC 'Push virtual IP endpoints for client tunnel, overriding the --ifconfig-pool dynamic allocation. SYNTAX: {client_assigned_ip_address} [[server_local_ip_address][-server_local_netmask]]'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch 
+	SINGLE-VALUE )
+
+# client x509 CN
+attributeType (
+	1.3.6.1.4.1.27340.100.1.21
+	NAME 'openvpnClientx509CN'
+	DESC 'OpenVPN client certificate Common Name.'
+	SYNTAX 	1.3.6.1.4.1.1466.115.121.1.15
+	EQUALITY caseExactMatch
+	SINGLE-VALUE )
+
+################################################################################
+#                             OBJECT CLASS(es)                                 #
+################################################################################
+
+objectclass ( 
+	1.3.6.1.4.1.27340.100.2.1
+	NAME 'openVPNUser'
+	DESC 'OpenVPN client configuration object.'
+	SUP top
+	AUXILIARY
+	MUST ( 
+		openvpnClientx509CN
+	) 
+	MAY ( 
+			openvpnPushReset $
+			openvpnRoute $
+			openvpnRouteDelay $
+			openvpnRedirectGateway $
+			openvpnIPWin32 $
+			openvpnDHCPOption $
+			openvpnInactive $
+			openvpnPing $
+			openvpnPingExit $
+			openvpnPingRestart $
+			openvpnSetEnv $
+			openvpnPersistKey $
+			openvpnPersistTun $
+			openvpnEcho $
+			openvpnCompLZO $
+			openvpnSocketFlags $
+			openvpnSndBuf $
+			openvpnRcvBuf $
+			openvpnTopology $
+			openvpnIfconfig
+		)
+	)
+
+# EOF

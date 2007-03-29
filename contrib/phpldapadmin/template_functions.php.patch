@@ -1,0 +1,18 @@
+--- template_functions.php.orig	2007-03-29 23:02:54.000000000 +0200
++++ template_functions.php	2007-03-29 23:03:43.000000000 +0200
+@@ -971,8 +971,13 @@
+ 				$html .= '</select>';
+ 
+ 			} else {
+-				print "ERROR: HelperValue NOT complete, how did you get HERE?";
+-				die();
++				if (preg_match('/^=php./',$helper)) {
++					$html = sprintf('<input type="text" name="%s" value="%s" size="30"/>',$id,
++						 $this->EvaluateDefault($ldapserver,$helper,$container,$counter));
++				} else {
++					print "ERROR: HelperValue NOT complete, how did you get HERE?";
++					die();
++				}
+ 			}
+ 		}
+ 
