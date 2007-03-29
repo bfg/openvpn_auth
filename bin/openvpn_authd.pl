@@ -1185,8 +1185,8 @@ my $r = GetOptions(
 		my $i = 0;
 		while (<$fd>) {
 			$i++;
-			next if ($i < 164);
-			last if ($i > 649);
+			next if ($i < 168);
+			last if ($i > 653);
 			if ($_ =~ m/ die/) {
 				$_ =~ s/^[#\s]+//g;
 			}
