@@ -362,7 +362,7 @@ $search_basedn = "";
 #
 # - all OpenVPN server provided variables:
 # 	common_name ifconfig_pool_local_ip ifconfig_pool_netmask
-#	ifconfig_pool_remote_ip script_type time_ascii time_unix
+#	ifconfig_pool_remote_ip script_type 
 #	trusted_ip trusted_port
 #
 # - all variables configured using ovpn_option() config file parameter
@@ -549,8 +549,7 @@ my $openvpn_config_types = {
 
 my @ovpn_env_vars = qw(
 	common_name ifconfig_pool_local_ip ifconfig_pool_netmask
-	ifconfig_pool_remote_ip script_type time_ascii time_unix
-	trusted_ip trusted_port
+	ifconfig_pool_remote_ip script_type trusted_ip trusted_port
 );
 
 my $have_digest_md5 = 0;
