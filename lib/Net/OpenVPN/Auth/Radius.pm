@@ -28,10 +28,10 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# $Id$
-# $LastChangedRevision$
-# $LastChangedBy$
-# $LastChangedDate$
+# $Id:Radius.pm 188 2007-03-29 11:39:03Z bfg $
+# $LastChangedRevision:188 $
+# $LastChangedBy:bfg $
+# $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
 
 package Net::OpenVPN::Auth::Radius;
 
@@ -100,7 +100,7 @@ sub clearParams {
 	$self->SUPER::clearParams();
 	
 	$self->{host} = "localhost";
-	$self->{service} = "";
+	$self->{service} = "radius";
 	$self->{secret} = "";
 	$self->{use_nas_ipaddr} = 0;
 	$self->{timeout} = 2;
@@ -116,7 +116,8 @@ sub authenticate {
 		Host => $self->{host},
 		Secret => $self->{secret},
 		Service => $self->{service},
-		Timeout => $self->{timeout}
+		Timeout => $self->{timeout},
+		Debug => ($self->{_log}->is_debug() ? 1 : 0)
 	);
 
 	# validate password

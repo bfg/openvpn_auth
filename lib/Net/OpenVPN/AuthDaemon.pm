@@ -28,10 +28,10 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# $Id$
-# $LastChangedRevision$
-# $LastChangedBy$
-# $LastChangedDate$
+# $Id:AuthDaemon.pm 188 2007-03-29 11:39:03Z bfg $
+# $LastChangedRevision:188 $
+# $LastChangedBy:bfg $
+# $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
 
 package Net::OpenVPN::AuthDaemon;
 
@@ -226,7 +226,8 @@ sub setName {
 sub readStruct {
 	my ($self) = @_;
 	my $struct = {};
-	$struct->{username} = "";
+	$self->resetStruct($struct);
+
 	my $i = 0;
 	while ($i < MAXLINES && defined(my $line = $self->{server}->{client}->getline())) {
 		$i++;
@@ -249,6 +250,18 @@ sub readStruct {
 	}
 
 	return $struct;
+}
+
+sub resetStruct {
+	my $self = shift;
+	$_[0] = {
+		username => '',
+		password => '',
+		untrusted_ip => '',
+		untrusted_port => 0,
+	};
+	
+	return 1;
 }
 
 # IO::Handle methods (used to catch output written by die && stuff)
