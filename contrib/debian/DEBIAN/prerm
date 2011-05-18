@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# svc shouldn't start at system startup
+# update-rc.d -f svc disable
+# update-rc.d -f svc remove
+
+# shutdown service
+service openvpn_auth stop
+
+exit 0
+
+# EOF
