@@ -1,0 +1,105 @@
+#!/bin/sh
+
+##################################################
+
+# load init configuration
+for f in /etc/sysconfig/openvpn_auth /etc/default/openvpn_auth; do
+	test -f "${f}" -a -r "${f}" || continue
+	. "${f}" >/dev/null 2>&1
+	break
+done
+
+##################################################
+
+MYNAME=`basename $0`
+ERROR=""
+_PID=""
+DAEMON="/usr/sbin/openvpn_authd"
+
+daemon_start() {
+	daemon_status >/dev/null 2>&1 && return 1
+	${DAEMON} ${DAEMON_OPT} --daemon start >/dev/null 2>&1
+	return $?
+}
+
+daemon_stop() {
+	daemon_status >/dev/null 2>&1 || return 1
+	
+	# kill the pid
+	if ! kill "${_PID}" >/dev/null 2>&1; then
+		ERROR="Unable to send SIGTERM to pid ${_PID}"
+		return 1
+	fi
+	
+	# wait for termination
+	i=0
+	ok=0
+	while [ $i -lt 10 ]; do
+		let i=$i+1
+		# is thisfucker still alive?
+		if ! kill -0 "${_PID}" >/dev/null 2>&1; then
+			ok=1
+			break
+		fi
+	done
+	if [ "${ok}" != "1" ]; then
+		ERROR="Process didn't stop."
+		return 1
+	fi
+	
+	return 0
+}
+
+daemon_pid() {
+	pidof -x -s "${DAEMON}" 2>/dev/null
+}
+
+daemon_status() {
+	_PID=`daemon_pid`
+	if [ -z "${_PID}" ]; then
+		ERROR="${MYNAME} is stopped."
+		return 1
+	else
+		ERROR="${MYNAME} is running as pid ${_PID}."
+		return 0
+	fi
+}
+
+case $1 in
+	start)
+		echo -n "Starting ${MYNAME}: "
+		if ! daemon_start; then
+			echo "failed: ${ERROR}"
+			exit 1
+		else
+			echo "ok"
+		fi
+		;;
+	stop)
+		echo -n "Stopping ${MYNAME}: "
+		if ! daemon_stop; then
+			echo "failed: ${ERROR}"
+			exit 1
+		else
+			echo "ok"
+		fi
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	status)
+		daemon_status
+		rv=$?
+		echo "${ERROR}"
+		exit $rv
+		;;
+	*)
+		echo "Usage: $MYNAME {start|stop|restart|status}"
+		exit 1
+		;;
+esac
+
+exit 0
+
+# EOG
