@@ -103,7 +103,7 @@ sub authenticate {
 
 =head1 AUTHOR
 
-Brane F. Gracnar, <bfg@frost.ath.cx>
+Brane F. Gracnar
 
 =cut
 
