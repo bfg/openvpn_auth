@@ -88,7 +88,7 @@ for taste in "" "client"; do
 	# taste specific stuff
 	if [ -z "$taste" ]; then
 		# create directories
-		mkdir -p etc/init.d etc/openvpn_auth usr/sbin usr/lib/openvpn_auth usr/share/openvpn_auth || die "Unable to create skeleton directories."
+		mkdir -p etc/init.d etc/openvpn_auth/sample usr/sbin usr/lib/openvpn_auth usr/share/openvpn_auth || die "Unable to create skeleton directories."
 		
 		# copy binaries
 		cp $BASEDIR/bin/* usr/sbin || die "Unable to install binaries."
@@ -100,7 +100,7 @@ for taste in "" "client"; do
 		cp $BASEDIR/contrib/init/openvpn_auth etc/init.d || die "Unable to install init script."
 		
 		# configuration samples
-		cp -f $BASEDIR/etc/*sample* etc/openvpn_auth || die "Unable to install configuration samples."
+		cp -f $BASEDIR/etc/*sample* etc/openvpn_auth/sample || die "Unable to install configuration samples."
 		
 		# misc stuff
 		cp -vf $BASEDIR/* usr/share/openvpn_auth 2>/dev/null 
