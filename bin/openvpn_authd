@@ -107,7 +107,7 @@ use Net::OpenVPN::PasswordValidator;
 #                    Runtime variables                      #
 #############################################################
 $MYNAME= basename($0);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 my $Error = "";
 my $default_config_file = "openvpn_authd.conf";
