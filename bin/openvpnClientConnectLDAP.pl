@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 #
-# Copyright (c) 2006, Brane F. Gracnar
+# Copyright (c) 2008, Brane F. Gracnar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -509,7 +509,7 @@ $schema_mapping = {
 #############################################################
 
 my $MYNAME = basename($0);
-my $VERSION = 0.1;
+my $VERSION = 0.11;
 
 my $Error = "";
 my $openvpn_config_type_default = CFG_STR;

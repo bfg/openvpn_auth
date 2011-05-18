@@ -1,4 +1,4 @@
-# Copyright (c) 2006, Brane F. Gracnar
+# Copyright (c) 2008, Brane F. Gracnar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -28,10 +28,10 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# $Id$
-# $LastChangedRevision$
-# $LastChangedBy$
-# $LastChangedDate$
+# $Id:LDAP.pm 188 2007-03-29 11:39:03Z bfg $
+# $LastChangedRevision:188 $
+# $LastChangedBy:bfg $
+# $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
 
 package Net::OpenVPN::Auth::LDAP;
 
@@ -139,7 +139,7 @@ B<search_deref> (string, "none") Valid values: B<never, search, find, always>
 
 B<debug> (boolean, 0) heavy LDAP operation debug
 
-B<timeout> (integer, 10) LDAP operation timeout in seconds
+B<timeout> (integer, 2) LDAP connection socket operation timeout in seconds
 
 =cut
 sub new {
@@ -212,7 +212,7 @@ sub clearParams {
 	$self->{search_deref} = "none";		# deref results?
 
 	$self->{debug} = 0;
-	$self->{timeout} = 10;
+	$self->{timeout} = 2;
 
 	$self->{_conn} = undef;
 	return 1;
@@ -600,7 +600,13 @@ sub _ldapBind {
 
 sub _connect {
 	my ($self) = @_;
-	return 1 if (defined $self->{_conn});
+
+	# check for cached connection
+	if ($self->{persistent_connection} && defined $self->{_conn}) {
+		return 1;
+	} else {
+		$self->{_conn} = undef;
+	}
 
 	my $result = 0;
 	$self->{error} = "";
@@ -632,6 +638,7 @@ sub _connect {
 
 	outta_connect:
 	unless ($result) {
+		$self->{_log}->error($self->{error});
 		$self->{_conn} = undef;
 	}
 

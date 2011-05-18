@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (c) 2006, Brane F. Gracnar
+# Copyright (c) 2008, Brane F. Gracnar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -141,7 +141,7 @@ use Net::OpenVPN::PasswordValidator;
 #                    Runtime variables                      #
 #############################################################
 $MYNAME= basename($0);
-$VERSION = 0.10;
+$VERSION = 0.11;
 
 my $Error = "";
 my $default_config_file = "openvpn_authd.conf";

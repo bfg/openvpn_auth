@@ -28,10 +28,10 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# $Id$
-# $LastChangedRevision$
-# $LastChangedBy$
-# $LastChangedDate$
+# $Id:DBI.pm 188 2007-03-29 11:39:03Z bfg $
+# $LastChangedRevision:188 $
+# $LastChangedBy:bfg $
+# $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
 
 package Net::OpenVPN::Auth::DBI;
 
@@ -165,7 +165,12 @@ sub _connect {
 	my ($self) = @_;
 
 	# return immediately, if we're already connected
-	return 1 if (defined $self->{_conn});
+	if ($self->{persistent_connection} && $self->{_conn}) {
+		return 1;
+	} else {
+		$self->{_conn} = undef;
+		$self->{_sql} = undef;
+	}
 	
 	$self->{error} = "";
 	

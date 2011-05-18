@@ -61,7 +61,7 @@
 #include <sys/ioctl.h>
 #include <termio.h>
 
-#define VERSION "0.1"
+#define VERSION "0.11"
 
 #define CRED_BUF_SIZE 512
 #define GEN_BUF_SIZE 1024
