@@ -103,9 +103,9 @@ char val_buf[GEN_BUF_SIZE];
 
 char *config_files[] = {
 	"/etc/openvpn_authc.conf",
-	"/etc/openvpn/openvpn_authc.conf",
+	"/etc/openvpn_auth/openvpn_authc.conf",
 	"/usr/local/etc/openvpn_authc.conf",
-	"/usr/local/etc/openvpn/openvpn_authc.conf",
+	"/usr/local/etc/openvpn_auth/openvpn_authc.conf",
 	".openvpn_authc.conf"
 };
 
