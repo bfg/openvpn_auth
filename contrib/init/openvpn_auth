@@ -26,8 +26,8 @@ daemon_stop() {
 	daemon_status >/dev/null 2>&1 || return 1
 	
 	# kill the pid
-	if ! kill "${_PID}" >/dev/null 2>&1; then
-		ERROR="Unable to send SIGTERM to pid ${_PID}"
+	if ! kill ${_PID} >/dev/null 2>&1; then
+		ERROR="Unable to send SIGTERM to pid(s): ${_PID}"
 		return 1
 	fi
 	
@@ -35,12 +35,19 @@ daemon_stop() {
 	i=0
 	ok=0
 	while [ $i -lt 10 ]; do
-		let i=$i+1
-		# is thisfucker still alive?
-		if ! kill -0 "${_PID}" >/dev/null 2>&1; then
-			ok=1
+		i=$(($i + 1))
+		ok=1
+		for p in ${_PID}; do
+			# is thisfucker still alive?
+			if kill -0 "${_PID}" >/dev/null 2>&1; then
+				ok=0
+				break
+			fi
+		done
+		if [ "${ok}" = "1" ]; then
 			break
 		fi
+		sleep 1
 	done
 	if [ "${ok}" != "1" ]; then
 		ERROR="Process didn't stop."
@@ -51,7 +58,7 @@ daemon_stop() {
 }
 
 daemon_pid() {
-	pidof -x -s "${DAEMON}" 2>/dev/null
+	pidof -x "${DAEMON}" | tr ' ' '\n' | sort | tr '\n' ' ' 2>/dev/null
 }
 
 daemon_status() {
@@ -60,7 +67,7 @@ daemon_status() {
 		ERROR="${MYNAME} is stopped."
 		return 1
 	else
-		ERROR="${MYNAME} is running as pid ${_PID}."
+		ERROR="${MYNAME} is running as pid(s): ${_PID}"
 		return 0
 	fi
 }
