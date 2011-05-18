@@ -1,0 +1,142 @@
+#!/bin/bash
+
+PACKAGE_NAME="openvpn-auth"
+PACKAGE_VERSION=""
+BUILD_NO="1"
+
+die () {
+	echo -e "FATAL: $@"
+	exit 1
+}
+
+pkg_create() {
+	local dir="$1"
+	echo "  Creating debian package from directory: $dir."
+	cd "$dir" || die "Unable to enter directory: $dir"
+	
+	ARCH=$(uname -m)
+	if [ "$ARCH" = "x86_64" ]; then
+		ARCH="amd64"
+	else
+		ARCH="i386"
+	fi
+
+	# fix debian control file
+	perl -pi -e "s/\\\${PACKAGE}/${PACKAGE_NAME}/g" DEBIAN/control || die "Unable to set DEBIAN/control package name."
+	perl -pi -e "s/\\\${VERSION}/${PACKAGE_VERSION}/g" DEBIAN/control || die "Unable to set DEBIAN/control package version."
+	perl -pi -e "s/\\\${ARCH}/${ARCH}/g" DEBIAN/control || die "Unable to set DEBIAN/control package arch."
+
+	# remove svn shit
+	find . -type d -name .svn | xargs rm -rf
+	# remove git shit
+	find . -type d -name .git | xargs rm -rf
+	
+	# change owner...
+	chown -R root:root .
+	
+	# create md5sums
+	find . -type f ! -regex '.*\.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > DEBIAN/md5sums
+
+	# create debian package
+	echo "Creating DEBIAN package."
+	dpkg --build . /tmp || die "Unable to create debian package."
+}
+
+##############################################
+#                  main                      #
+##############################################
+
+if [ "`id -u`" != "0" ]; then
+	echo "You must be r00t to do that."
+	exit 1
+fi
+
+DESTDIR=$(mktemp -d)
+test -z "$DESTDIR" && die "Unable to create temporary install directory."
+chmod 755 "$DESTDIR" || die "Unable to change permissions on temporary install directory."
+
+PKG_BASEDIR=$(pwd)
+BASEDIR=$(readlink -f "${PKG_BASEDIR}/../../")
+
+PACKAGE_VERSION=$($BASEDIR/bin/openvpn_authd -V | head -n 1 | awk '{print $2}')
+test -z "$PACKAGE_VERSION" && die "Undefined package version."
+echo "name: $PACKAGE_NAME, version $PACKAGE_VERSION"
+export PACKAGE_NAME PACKAGE_VERSION
+
+# we're gonna build multiple packages
+orig_pkg_name="$PACKAGE_NAME"
+for taste in "" "client"; do
+	if [ -z "$DESTDIR" -o "$DESTDIR" = "/" ]; then
+		die "Invalid destdir: $DESTDIR."
+	fi
+	
+	test ! -z "$taste" && PACKAGE_NAME="${orig_pkg_name}-${taste}"
+	
+	echo ""
+	echo "Creating package: $PACKAGE_NAME; taste: "
+	echo ""
+	
+	# perform destdir cleanup
+	cd "$DESTDIR" || die "Unable to enter: $DESTDIR."
+	#pwd
+	#echo "Going to remove everything in current directory; press ctrl+c if you're not sure."
+	#read s
+	rm -rf *
+	
+	# remove files...
+	
+	# taste specific stuff
+	if [ -z "$taste" ]; then
+		# create directories
+		mkdir -p etc/init.d etc/openvpn_auth usr/sbin usr/lib/openvpn_auth usr/share/openvpn_auth || die "Unable to create skeleton directories."
+		
+		# copy binaries
+		cp $BASEDIR/bin/* usr/sbin || die "Unable to install binaries."
+		
+		# copy libraries
+		cp -ra $BASEDIR/lib/* usr/lib/openvpn_auth || die "Unable to install libraries."
+		
+		# init script
+		cp $BASEDIR/contrib/init/openvpn_auth etc/init.d || die "Unable to install init script."
+		
+		# configuration samples
+		cp -f $BASEDIR/etc/*sample* etc/openvpn_auth || die "Unable to install configuration samples."
+		
+		# misc stuff
+		cp -vf $BASEDIR/* usr/share/openvpn_auth 2>/dev/null 
+
+	elif [ "$taste" = "client" ]; then
+		# install everything...
+		cp -ra "$BASEDIR"/* . || die "Unable to install package contents."
+
+		# remove everything in bin directory
+		rm -f bin/*
+		rm -rf contrib etc lib
+		
+		# compile client
+		(cd c && make all) >/dev/null 2>&1 || die "Unable to compile client."
+		
+		# remove debug version and c source
+		rm -f bin/*debug*
+		rm -rf c
+		rm -f *
+	else
+		die "Invalid taste: $taste"
+	fi
+	
+	# copy debian stuff
+	if [ -z "$taste" ]; then
+		cp -ra "$PKG_BASEDIR/DEBIAN" "$DESTDIR/DEBIAN" || die "Unable to copy debian package settings."
+	else
+		cp -ra "$PKG_BASEDIR/DEBIAN.$taste" "$DESTDIR/DEBIAN" || die "Unable to copy debian package settings for taste: $taste"
+	fi	
+
+	# create package
+	pkg_create "$DESTDIR" || die "Unable to create debian package."
+	PACKAGE_NAME="${orig_pkg_name}"
+done
+
+# perform cleanup
+test ! -z "${DESTDIR}" && rm -rf "$DESTDIR"
+
+# EOF

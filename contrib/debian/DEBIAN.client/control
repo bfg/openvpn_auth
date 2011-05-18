@@ -1,0 +1,7 @@
+Package: ${PACKAGE}
+Version: ${VERSION}
+Section: net
+Priority: optional
+Architecture: ${ARCH}
+Homepage: https://github.com/bfg/openvpn_auth
+Description: Flexible OpenVPN authentication client
