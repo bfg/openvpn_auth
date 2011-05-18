@@ -52,12 +52,6 @@ sub getError {
 	return $self->{error};
 }
 
-sub child_init_hook {
-	my ($self) = @_;
-	$0 = $self->{_myname} . " (worker, idle, virgin)";
-	return 1;
-}
-
 sub post_bind_hook {
 	my ($self) = @_;
 	if (defined ($self->{umask})) {
@@ -71,27 +65,6 @@ sub post_bind_hook {
 	# close stdin and reopen it on null device
 	close(STDIN);
 	open(STDIN, File::Spec->devnull());
-}
-
-sub post_accept_hook {
-	my ($self) = @_;
-	my $host = "unix socket ";
-	eval {
-		$host = $self->{server}->{client}->peerhost();
-	};
-
-	$0 = $self->{_myname} . " (worker, connect from: " . $host . ": processing)";
-	return 1;
-}
-
-sub pre_loop_hook {
-	my ($self) = @_;
-	$0 = $self->{_myname} . " (master)";
-}
-
-sub post_process_request_hook {
-	my ($self) = @_;
-	$0 = $self->{_myname} . " (worker, idle)";
 }
 
 sub process_request {
