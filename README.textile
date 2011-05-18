@@ -1,0 +1,220 @@
+h1. WHAT IS INSIDE THIS PACKAGE?
+
+# OpenVPN authentication server and client (openvpn_authd.pl)
+
+# OpenVPN server add-on for dynamically configuring clients from LDAP directory
+
+h1. COMPONENTS
+
+h2. OpenVPN authentication server
+
+This package contains authentication server and client for excellent "OpenVPN".http://www.openvpn.net
+VPN userland daemon. Currently you can authenticate your openvpn client using the following authentication backends:
+
+* LDAP
+* Kerberos5
+* any SQL database supported by perl DBI driver
+* IMAPv4 server
+* POP3 server
+* plain file containing passwords
+* SASL library
+* PAM library
+* Radius service
+* custom certificate validation algorithm.
+
+h3. SYSTEM REQUIREMENTS
+
+* perl (authentication server is written in perl)
+* c compiler (for compiling authentication client)
+
+You can install missing perl modules using your operating
+system package manager or by running the following command:
+
+bc. 
+perl -MCPAN -e 'install <module name>'
+
+
+*Required perl modules:*
+
+* Log::Log4perl - for highly configurable logging
+* Log::Dispatch - Log4perl drivers
+* Net::Server - for simple and reliable network server infrastructure
+
+*Optional modules:*
+
+* Net::LDAP - for ldap backend
+* IO::Socket::SSL - for providing secure transport for LDAP, IMAP and POP3 backends
+* DBI and corresponding DBI module - for DBI/SQL backend
+* Authen::Krb5::Simple - for Kerberos5 backend
+* Authen::SASL - for sasl bind support in LDAP backend
+* Authen::SASL::Cyrus - for SASL backend
+* Authen::PAM - for PAM backend
+* Authen::Radius - for Radius backend
+
+*Optional password validation perl modules:*
+
+These modules are used by File and DBI backends and possibly by LDAP backend
+when using 'pass_attr' authentication method.
+
+* Crypt::PasswdMD5 - for validating md5 hashed crypt(3) passwords
+* Digest::MD5 - for validating md5 string hashes
+* Digest::SHA1 - for validation of sha1 string hashes
+* Crypt::SmbHash - for validation of ntlm hashes
+* Digest::Tiger - for validation of Tiger string hashes
+* Digest::Whirlpool - for validation of Whirlpool string hashes
+
+h3. INSTALLATION
+
+* Install, configure & test openvpn daemon (i guess you already did that)
+
+* Unpack openvpn_authd (i guess you already did that too)
+
+* Compile openvpn_authc
+
+bc. 
+	cd "c" && make
+
+* Create default configuration file
+
+bc. 
+	./bin/openvpn_authd.pl --default-conf > ./etc/openvpn_authd.conf
+
+* List supported authentication backends
+
+bc. 
+	./bin/openvpn_authd.pl --list
+
+* Read authentication backend documentation
+
+bc. 
+	./bin/openvpn_authd.pl --doc <DRIVER>
+
+* Adjust configuration your file
+
+bc. 
+	vi ./etc/openvpn_authd.conf
+
+* Start server in non daemon and debug mode
+	./openvpn_authd.pl --no-daemon --debug
+
+* Create file with username and password
+
+bc. 
+	echo "joe" > /tmp/sample_auth.txt
+	echo "joes_password" >> /tmp/sample_auth.txt
+
+* Create & adjust openvpn_authc configuration file
+
+bc. 
+	./bin/openvpn_authc --default-config > /etc/openvpn_authc.conf
+	vi /etc/openvpn_authc.conf
+
+* Check if everything works...
+
+bc. 
+	export common_name="someuser.example.org"
+	export untrusted_ip="1.2.3.4"
+	export untrusted_port="3456"
+	export script_type="auth-user-pass-verify"
+
+bc. 
+	./bin/openvpn_authc -v /tmp/sample_auth.txt
+
+* Doesn't work? Check your syslog, there's alot of debug output...
+
+* Works? Hooray, configure your openvpn daemon to use openvpn_authc:
+
+bc. 
+	# /etc/openvpn/openvpn-server.conf
+	# use external additional authentication
+	# using openvpn_authd
+	auth-user-pass-verify /path/to/openvpn_authd/bin/openvpn_authc via-file
+
+h4. Chroot install
+
+This is ad-hoc document section explains how to chroot openvpn and openvpn_authd.
+
+However, you don't need to do this, or you can only chroot openvpn and not
+openvpn_authd, but the best way is to chroot both of them (openvpn_authd was designed to run in chroot from scratch)
+
+* Create openvpn chroot directory (see OPENVPN_CHROOT_STRUCTURE.TXT)
+* Create openvpn_authd chroot structure (see OPENVPN_AUTHD_CHROOT_STRUCTURE.TXT)
+* Configure your syslogd (or even better, syslog-ng) to put listening sockets in *BOTH* chroots
+* Restart syslogd :)
+* Compile openvpn_authc statically
+
+bc. 
+	cd c && make static
+
+* Reconfigure your openvpn to chroot (see samples/openvpn-server-chroot.conf)
+
+* Reconfigure openvpn_authd to put listening socket to openvpn chroot
+(you don't need to do this if openvpn_authd is listening at tcp address)
+
+* Edit <OPENVPN_CHROOT>/etc/openvpn_authc.conf and set directive hostname
+* Put statically compiled openvpn_authc binary into <OPENVPN_CHROOT>/bin
+* Put */bin/sh* file into <OPENVPN_CHROOT>/bin and /bin/sh linked libraries into <OPENVPN_CHROOT>/lib(64)
+
+bc. 
+	# ldd ../bin/sh
+        libtermcap.so.2 => /lib64/libtermcap.so.2 (0x00002b636bf5c000)
+        libdl.so.2 => /lib64/libdl.so.2 (0x00002b636c05f000)
+        libc.so.6 => /lib64/libc.so.6 (0x00002b636c163000)
+        /lib64/ld-linux-x86-64.so.2 (0x00002b636be3c000)
+
+* Restart openvpn and openvpn_authd && test configuration
+
+h1. OpenVPN client configuration
+
+This package implements script which can be used as openvpn server
+*--client-connect* script or can be used for *periodic generation of client configuration files.*
+
+h2. HOWTO
+
+* Create default configuraton file.
+
+bc. 
+	./openvpnClientConnectLDAP --default-config
+
+* Change configuration to suit your needs
+
+* Run it on regular basis to create client configuration file OR set client-connect /path/to/openvpnClientConnectLDAP.pl to your openvpn server configuration file.
+
+h1. LICENSE
+
+BSD license.
+
+<pre>
+Copyright (c) 2006-2011, Brane F. Gracnar
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without modification,
+ are permitted provided that the following conditions are met:
+
+ + Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+
+ + Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+ + Neither the name of the Brane F. Gracnar nor the names of its contributors
+   may be used to endorse or promote products derived from this software without
+   specific prior written permission.
+
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre>
+
+
+
+

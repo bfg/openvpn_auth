@@ -1,4 +1,4 @@
- Copyright (c) 2006, Brane F. Gracnar
+Copyright (c) 2006-2011, Brane F. Gracnar
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without modification,
