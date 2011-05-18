@@ -2,6 +2,7 @@
 all:
 	make dynamic
 	make static
+	make debug
 
 help:
 	@echo ""
@@ -16,12 +17,12 @@ help:
 	@echo ""
 
 static:
-	$(CC) $(CFLAGS) -O2 -Wall -static $(LDFLAFS) -g -o ../bin/openvpn_authc openvpn_auth_client.c
-	strip ../bin/openvpn_authc
+	$(CC) $(CFLAGS) -O2 -Wall -static $(LDFLAFS) -g -o ../bin/openvpn_authc.static openvpn_auth_client.c
+	strip ../bin/openvpn_authc.static
 
 dynamic:
-	$(CC) $(CFLAGS) -O2 -Wall $(LDFLAFS) -g -o ../bin/openvpn_authc.static openvpn_auth_client.c
-	strip ../bin/openvpn_authc.static
+	$(CC) $(CFLAGS) -O2 -Wall $(LDFLAFS) -g -o ../bin/openvpn_authc openvpn_auth_client.c
+	strip ../bin/openvpn_authc
 
 debug:
 	$(CC) $(CFLAGS) -O2 -Wall $(LDFLAFS) -g -o ../bin/openvpn_authc.debug openvpn_auth_client.c
