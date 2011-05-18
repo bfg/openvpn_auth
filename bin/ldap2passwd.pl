@@ -149,7 +149,7 @@ file_user_group => "",
 #                 FUNCTIONS                    #
 ################################################
 my $MYNAME = basename($0);
-my $VERSION = '0.14';
+my $VERSION = '0.15';
 my $Error = "";
 
 my $config = {};
@@ -208,6 +208,12 @@ sub qtrim {
 	$str =~ s/^\s*["']*//g;
 	$str =~ s/["']*\s*$//g;
 	return $str;
+}
+
+sub config_default {
+	my $cfg = {};
+	%{$cfg} = %{$config_default};
+	return $cfg;
 }
 
 sub config_read {
@@ -313,7 +319,7 @@ sub ldap_connect {
 	);
 
 	# ldap url?
-	if ($ldap_url =~ m/^ldap(s)?:\/\//i) {
+	if (defined $ldap_url && $ldap_url =~ m/^ldap(s)?:\/\//i) {
 		$conn = Net::LDAP->new($ldap_url, %opt);
 	} else {
 		# resolve all ldap addresses...
@@ -621,6 +627,9 @@ sub printhelp {
 ################################################
 #                    MAIN                      #
 ################################################
+
+# set default config
+$config = config_default();
 
 # parse command line
 Getopt::Long::Configure('bundling', 'gnu_compat');
