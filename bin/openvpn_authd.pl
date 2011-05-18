@@ -1,40 +1,5 @@
 #!/usr/bin/perl
 
-# Copyright (c) 2008, Brane F. Gracnar
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without modification,
-# are permitted provided that the following conditions are met:
-#
-# + Redistributions of source code must retain the above copyright notice,
-#  this list of conditions and the following disclaimer.
-#
-# + Redistributions in binary form must reproduce the above copyright notice,
-#  this list of conditions and the following disclaimer in the documentation
-#  and/or other materials provided with the distribution.
-#
-# + Neither the name of the Brane F. Gracnar nor the names of its contributors
-#   may be used to endorse or promote products derived from this software without
-#   specific prior written permission.
-#
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
-# $Id:openvpn_authd.pl 188 2007-03-29 11:39:03Z bfg $
-# $LastChangedRevision:188 $
-# $LastChangedBy:bfg $
-# $LastChangedDate:2007-03-29 13:39:03 +0200 (Thu, 29 Mar 2007) $
-
 use strict;
 use warnings;
 
@@ -104,7 +69,10 @@ use Log::Log4perl;
 use File::Basename;
 
 # determine libdir and put it into @INC
-use lib Cwd::realpath(File::Spec->catdir($FindBin::Bin,  "..", "lib"));
+use lib (
+	'/usr/lib/openvpn_auth',
+	Cwd::realpath(File::Spec->catdir($FindBin::Bin,  "..", "lib"))
+);
 
 use vars qw(
 	$MYNAME $VERSION
@@ -117,9 +85,7 @@ use vars qw(
 	$daemon_user
 	$daemon_group
 	$daemon_maxreqs
-	$daemon_serialize
 	$daemon_pidfile
-	$daemon_lockfile
 	$daemon_min_servers
 	$daemon_max_servers
 	$daemon_min_spares
@@ -141,7 +107,7 @@ use Net::OpenVPN::PasswordValidator;
 #                    Runtime variables                      #
 #############################################################
 $MYNAME= basename($0);
-$VERSION = 0.11;
+$VERSION = '0.11';
 
 my $Error = "";
 my $default_config_file = "openvpn_authd.conf";
@@ -518,28 +484,12 @@ $daemon_group = undef;
 # Default: 100
 $daemon_maxreqs = 100;
 
-# Daemon serialization method
-#
-# Valid values: semaphore, flock, pipe
-#
-# Command line parameter: -S | --serialize
-# Type: string
-# Default: "semaphore"
-$daemon_serialize = "semaphore";
-
 # Daemon pid file
 #
 # Command line parameter: -p | --pid-file 
 # Type: string
 # Default: "/tmp/openvpn_authd.pl.pid"
-$daemon_pidfile = File::Spec->catfile(File::Spec->tmpdir(), $MYNAME . ".pid");
-
-# Daemon serialization lock file
-#
-# Command line parameter: -l | --lock-file
-# Type: string
-# Default: "/tmp/openvpn_authd.pl.lock"
-$daemon_lockfile = File::Spec->catfile(File::Spec->tmpdir(), $MYNAME . ".lock");
+$daemon_pidfile = '/tmp/openvpn_auth.pid';
 
 # Minimum number of authentication worker servers
 #
@@ -658,9 +608,9 @@ $extra_modules = [
 
 my @config_file_dirs = (
 	"/etc",
-	"/etc/openvpn",
+	"/etc/openvpn_auth",
 	"/usr/local/etc",
-	"/usr/local/etc/openvpn",
+	"/usr/local/etc/openvpn_auth",
 	Cwd::realpath(File::Spec->catfile($FindBin::Bin,  "..", "etc"))
 );
 
@@ -715,10 +665,6 @@ sub printhelp {
 	print STDERR "         --min-spares    Minimum number of spare workers (Default: ", pvar($daemon_min_spares), ")\n";
 	print STDERR "         --max-spares    Maximum number of spare workers (Default: ", pvar($daemon_max_spares), ")\n";
 	print STDERR "\n";
-	print STDERR "  -S     --serialize     Daemon serialize method (Default: ", pvar($daemon_serialize), ")\n";
-	print STDERR "                         Valid settings: flock, semaphore, pipe\n";
-	print STDERR "\n";
-	print STDERR "  -l     --lock-file     Path to lock file when using file-based serliaze method (Default: ", pvar($daemon_lockfile), ")\n";
 	print STDERR "  -p     --pid-file      Path to pid file (Default: ", pvar($daemon_pidfile), ")\n";
 	print STDERR "  -t     --chroot        Chroot to specified directory after server startup (Default: ", pvar($chroot), ")\n";
 	print STDERR "\n";
@@ -732,7 +678,6 @@ sub printhelp {
 	print STDERR "OTHER OPTIONS:\n";
 	print STDERR "         --list          List supported authentication backends\n";
 	print STDERR "         --doc           Show authentication backend documentation\n";
-	print STDERR "         --default-conf  Prints out default configuration file\n";
 	print STDERR "         --list-pwalgs   Lists supported and enabled password hashing algorithms\n";
 	print STDERR "\n";
 	print STDERR "  -V     --version       Print daemon version\n";
@@ -823,6 +768,22 @@ sub load_config_default {
 				exit 1;
 			}
 		}
+	}
+}
+
+sub config_default_print {
+	my $fd = IO::File->new($0, 'r') || die "Unable to print default configuration: $!\n";
+	my $start = 134;
+	my $stop = 603;
+	my $i = 0;
+	while (<$fd>) {
+		$i++;
+		next if ($i < $start);
+		last if ($i > $stop);
+		if ($_ =~ m/^#\s+die\s+/) {
+			$_ =~s /^#\s+//g;
+		}
+		print $_;
 	}
 }
 
@@ -924,9 +885,9 @@ sub daemon_action_start {
 		group => $daemon_group,
 		max_requests => $daemon_maxreqs,
 
-		serialize => $daemon_serialize,
+		# serialize => $daemon_serialize,
 		pid_file => $daemon_pidfile,
-		lock_file => $daemon_lockfile,
+		# lock_file => $daemon_lockfile,
 		
 		min_servers => $daemon_min_servers,
 		max_server => $daemon_max_servers,
@@ -946,10 +907,10 @@ sub daemon_action_start {
 	);
 
 	# serialization mess...
-	delete $srv_args{lock_file} if ($daemon_serialize ne 'flock');
-	if ($daemon_serialize eq 'semaphore') {
+	#delete $srv_args{lock_file} if ($daemon_serialize ne 'flock');
+	#if ($daemon_serialize eq 'semaphore') {
 		push(@{$extra_modules}, 'IPC::SysV', 'IPC::Semaphore');
-	}
+	#}
 
 	# apply CIDR acess controls
 	# on non-unix domain listening sockets.
@@ -1144,8 +1105,11 @@ my $r = GetOptions(
 			exit 1;
 		}
 	},
+	'default-config' => sub {
+		config_default_print();
+		exit 0;
+	},
 	'd|daemon!' => \ $daemon,
-
 	'H|listen-addr=s' => \ $daemon_host,
 	'P|port=i' => \ $daemon_port,
 	'u|user=s' => \ $daemon_user,
@@ -1155,46 +1119,22 @@ my $r = GetOptions(
 	'min-servers=i' => \ $daemon_min_servers,
 	'max-spares=i' => \ $daemon_max_spares,
 	'min-spares=i' => \ $daemon_min_spares,
-	'S|serialize=s' => \ $daemon_serialize,
-	'l|lock-file=s' => \ $daemon_lockfile,
+	#'S|serialize=s' => \ $daemon_serialize,
+	#'l|lock-file=s' => \ $daemon_lockfile,
 	'p|pid-file=s' => \ $daemon_pidfile,
 	't|chroot=s' => \ $chroot,
-
 	'L|log-config=s' => \ $log_config_file,
 	'D|debug!' => \ $debug,
-	
 	'list' => sub {
 		print join(", ", Net::OpenVPN::Auth->getDrivers()), "\n";
 		exit 0;
 	},
-	
 	'doc=s' => sub {
 		my $name = $_[1];
 		$ENV{PERL5LIB} = join(":", @INC);
 		system("perldoc Net::OpenVPN::Auth::$name");
 		exit 0;
 	},
-	
-	'default-conf' => sub {
-		my $fd = IO::File->new($0, 'r');
-		unless (defined $fd) {
-			print STDERR "Unable to open '$0' for reading.\n";
-			exit 1;
-		}
-
-		my $i = 0;
-		while (<$fd>) {
-			$i++;
-			next if ($i < 168);
-			last if ($i > 653);
-			if ($_ =~ m/ die/) {
-				$_ =~ s/^[#\s]+//g;
-			}
-			print $_;
-		}
-		exit 0;
-	},
-	
 	'list-pwalgs' => sub {
 		my $val = Net::OpenVPN::PasswordValidator->new();
 		print "NAME           ENABLED MODULE                DESCRIPTION\n";	
@@ -1210,9 +1150,8 @@ my $r = GetOptions(
 		}
 		exit 0;
 	},
-
 	'V|version' => sub {
-		printf("%s %-.2f\n", $MYNAME, $VERSION);
+		print "$MYNAME $VERSION\n";
 		exit 0;
 	},
 	'h|help' => sub {
