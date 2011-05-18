@@ -296,7 +296,7 @@ objectclass (
 	SUP top
 	AUXILIARY
 	MUST ( 
-		openvpnClientx509CN
+		openvpnClientx509CN $
 		openvpnEnabled
 	) 
 	MAY ( 
