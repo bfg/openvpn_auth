@@ -351,28 +351,12 @@ $daemon_group = undef;
 # Default: 100
 $daemon_maxreqs = 100;
 
-# Daemon serialization method
-#
-# Valid values: semaphore, flock, pipe
-#
-# Command line parameter: -S | --serialize
-# Type: string
-# Default: "semaphore"
-$daemon_serialize = "semaphore";
-
 # Daemon pid file
 #
 # Command line parameter: -p | --pid-file 
 # Type: string
 # Default: "/tmp/openvpn_authd.pl.pid"
-$daemon_pidfile = File::Spec->catfile(File::Spec->tmpdir(), $MYNAME . ".pid");
-
-# Daemon serialization lock file
-#
-# Command line parameter: -l | --lock-file
-# Type: string
-# Default: "/tmp/openvpn_authd.pl.lock"
-$daemon_lockfile = File::Spec->catfile(File::Spec->tmpdir(), $MYNAME . ".lock");
+$daemon_pidfile = "/tmp/openvpn_authd.pl.pid";
 
 # Minimum number of authentication worker servers
 #
