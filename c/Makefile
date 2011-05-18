@@ -1,10 +1,9 @@
 
-# $Id$
-# $LastChangedRevision$
-# $LastChangedBy$
-# $LastChangedDate$
-
 all:
+	make dynamic
+	make static
+
+help:
 	@echo ""
 	@echo "OpenVPN authentication client openvpn_authc can be compiled"
 	@echo ""
@@ -13,7 +12,7 @@ all:
 	@echo ""
 	@echo "To compile, type:"
 	@echo ""
-	@echo "		make {dynamic|static}"
+	@echo "		make {dynamic|static|debug}"
 	@echo ""
 
 static:
@@ -21,5 +20,8 @@ static:
 	strip ../bin/openvpn_authc
 
 dynamic:
-	$(CC) $(CFLAGS) -O2 -Wall $(LDFLAFS) -g -o ../bin/openvpn_authc openvpn_auth_client.c
-	strip ../bin/openvpn_authc
+	$(CC) $(CFLAGS) -O2 -Wall $(LDFLAFS) -g -o ../bin/openvpn_authc.static openvpn_auth_client.c
+	strip ../bin/openvpn_authc.static
+
+debug:
+	$(CC) $(CFLAGS) -O2 -Wall $(LDFLAFS) -g -o ../bin/openvpn_authc.debug openvpn_auth_client.c
