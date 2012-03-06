@@ -1145,8 +1145,8 @@ sub ldapEntry2File {
 		} else {
 			if ($type == CFG_BOOL) {
 				my $str = lc(join("", @{$value}));
-				if ($str eq 'true' || $str eq 'yes' || $str eq 'y' || $str eq '1' && $ovpn_param=='push-reset') {
-					$write_str = ' $ovpn_param ';
+				if ($str eq 'true' || $str eq 'yes' || $str eq 'y' || $str eq '1' && $ovpn_param eq 'push-reset') {
+					$write_str = $ovpn_param;
 				}
 				elsif ($str eq 'true' || $str eq 'yes' || $str eq 'y' || $str eq '1') {
 					$write_str = 'push "' . $ovpn_param . '"';
